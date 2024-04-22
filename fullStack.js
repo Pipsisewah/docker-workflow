@@ -71,15 +71,16 @@ const actions = {
         console.log('Now in connectAndInsertDocument');
         console.log('Connecting to MongoDB');
         const client = await mongoClient.connect(
-            'mongodb://mongo:27017',
+            'mongodb://localhost:27017',
             { useNewUrlParser: true, useUnifiedTopology: true }
         );
         console.log('Connecting to db to write');
         const db = client.db('test');
         const collection = db.collection('documents');
-        await collection.insertOne({ message: 'Hello from Nginx!' });
+        await collection.insertOne({ message: 'Hello from Nginx! Again' });
         console.log('Should have written to database');
         await client.close();
+        console.log('Connectin to DB should now be closed');
     }
 };
 
@@ -120,10 +121,10 @@ const dockerScriptMachine = Machine(
             connectingAndInsertingDocument: {
                 invoke: {
                     src: 'connectAndInsertDocument',
-                    onDone: {
-                        actions: sendParent({ type: 'CONTAINERS_READY' }),
-                        target: 'running'
-                    }
+                    // onDone: {
+                    //     actions: sendParent({ type: 'CONTAINERS_READY' }),
+                    //     target: 'running'
+                    // }
                 }
             },
             running: {
