@@ -121,10 +121,10 @@ const dockerScriptMachine = Machine(
             connectingAndInsertingDocument: {
                 invoke: {
                     src: 'connectAndInsertDocument',
-                    // onDone: {
-                    //     actions: sendParent({ type: 'CONTAINERS_READY' }),
-                    //     target: 'running'
-                    // }
+                    onDone: {
+                        target: 'running',
+                        actions: sendParent('CONTAINERS_READY') // Send event to parent
+                    }
                 }
             },
             running: {
@@ -140,15 +140,25 @@ const dockerScriptMachine = Machine(
                 await actions.pullImage('nginx:latest');
             },
             startMongoDB: async () => {
-                const mongoContainerOptions = {
-                    Image: 'mongo:latest',
-                    ExposedPorts: { '27017/tcp': {} }, // Expose MongoDB port
-                    HostConfig: {
-                        PortBindings: { '27017/tcp': [{ HostPort: '27017' }] } // Bind container port to host port
-                    },
-                    name: 'my_mongodb_container'
-                };
-                return actions.startContainer(mongoContainerOptions);
+                const containerName = 'my_mongodb_container';
+                const container = docker.getContainer(containerName);
+                // Check if the container exists
+                const inspectData = await container.inspect();
+                if(!inspectData) {
+                    const mongoContainerOptions = {
+                        Image: 'mongo:latest',
+                        ExposedPorts: {'27017/tcp': {}}, // Expose MongoDB port
+                        HostConfig: {
+                            PortBindings: {'27017/tcp': [{HostPort: '27017'}]} // Bind container port to host port
+                        },
+                        name: containerName
+                    };
+                    return actions.startContainer(mongoContainerOptions);
+                } else if(inspectData.State.Running){
+                    return;
+                } else {
+                    await container.start();
+                }
             },
             startNginx: async () => {
                 const nginxContainerOptions = {
@@ -183,6 +193,7 @@ const interpreter = interpret(dockerScriptMachine)
 
 // Listen for CONTAINERS_READY event
 interpreter.onEvent((event) => {
+    console.log(`Received an event! ${JSON.stringify(event)}`)
     if (event.type === 'CONTAINERS_READY') {
         console.log('MongoDB and Nginx containers are ready.');
     }
