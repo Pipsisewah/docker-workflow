@@ -1,5 +1,5 @@
 const Docker = require('dockerode');
-const { Machine, assign, sendParent } = require('xstate');
+const { Machine, assign, sendParent, send } = require('xstate');
 const mongoClient = require('mongodb').MongoClient;
 // Create a Docker instance
 const docker = new Docker();
@@ -52,7 +52,7 @@ const actions = {
                     'mongodb://localhost:27017',
                     { useNewUrlParser: true, useUnifiedTopology: true }
                 );
-                client.close();
+                await client.close();
                 return;
             } catch (err) {
                 attempts++;
@@ -123,7 +123,6 @@ const dockerScriptMachine = Machine(
                     src: 'connectAndInsertDocument',
                     onDone: {
                         target: 'running',
-                        actions: sendParent('CONTAINERS_READY') // Send event to parent
                     }
                 }
             },
@@ -138,13 +137,22 @@ const dockerScriptMachine = Machine(
             pullImages: async () => {
                 await actions.pullImage('mongo:latest');
                 await actions.pullImage('nginx:latest');
+                console.log('Images have been pulled');
             },
             startMongoDB: async () => {
                 const containerName = 'my_mongodb_container';
-                const container = docker.getContainer(containerName);
-                // Check if the container exists
-                const inspectData = await container.inspect();
-                if(!inspectData) {
+                let containerExists = false;
+                let containerRunning = false;
+                try{
+                    const container = await docker.getContainer(containerName).inspect();
+                    containerExists = true;
+                    containerRunning = (container.State.Running === true);
+                } catch (err) {
+                    // Do nothing, already set to false
+                    console.log(err.message);
+                }
+                if(!containerExists) {
+                    console.log('No Inspect Data');
                     const mongoContainerOptions = {
                         Image: 'mongo:latest',
                         ExposedPorts: {'27017/tcp': {}}, // Expose MongoDB port
@@ -154,9 +162,13 @@ const dockerScriptMachine = Machine(
                         name: containerName
                     };
                     return actions.startContainer(mongoContainerOptions);
-                } else if(inspectData.State.Running){
+                } else if(containerExists && containerRunning){
+                    console.log('MongoDB Already Running"')
+                    sendParent('CONTAINERS_READY');
                     return;
                 } else {
+                    console.log('MongoDB Exists but is not running.  Starting!');
+                    const container = await docker.getContainer(containerName);
                     await container.start();
                 }
             },
@@ -172,12 +184,7 @@ const dockerScriptMachine = Machine(
                 return actions.startContainer(nginxContainerOptions);
             },
             checkMongoDBReady: actions.checkMongoDBReady,
-            // Add async keyword to make it an asynchronous function
-            async connectAndInsertDocument(context, event) {
-                // Await the execution of connectAndInsertDocument
-                console.log('Attempting to call connect and insert document');
-                await actions.connectAndInsertDocument();
-            },
+            connectAndInsertDocument: actions.connectAndInsertDocument
         }
     }
 );
@@ -191,13 +198,14 @@ const interpreter = interpret(dockerScriptMachine)
     .onTransition(state => console.log('Current state:', state.value))
     .start();
 
-// Listen for CONTAINERS_READY event
-interpreter.onEvent((event) => {
-    console.log(`Received an event! ${JSON.stringify(event)}`)
-    if (event.type === 'CONTAINERS_READY') {
-        console.log('MongoDB and Nginx containers are ready.');
+interpreter.onTransition(state => {
+    console.log('Transitioned to:', state.value);
+
+    // Check if the machine has reached the final state
+    if (state.done) {
+        console.log('Machine is in a "done" state.');
     }
-});
+})
 
 // Start the interpreter
 interpreter.send('START');
