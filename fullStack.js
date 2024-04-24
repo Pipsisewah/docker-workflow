@@ -84,6 +84,10 @@ const actions = {
     }
 };
 
+function onProgress(event) {
+    console.log('Build progress:', event);
+}
+
 // Define the Dockerode script execution machine
 const dockerScriptMachine = Machine(
     {
@@ -152,16 +156,71 @@ const dockerScriptMachine = Machine(
                     console.log(err.message);
                 }
                 if(!containerExists) {
-                    console.log('No Inspect Data');
-                    const mongoContainerOptions = {
-                        Image: 'mongo:latest',
+                    // console.log('No Inspect Data');
+                    // const mongoContainerOptions = {
+                    //     Image: 'mongo:latest',
+                    //     ExposedPorts: {'27017/tcp': {}}, // Expose MongoDB port
+                    //     HostConfig: {
+                    //         PortBindings: {'27017/tcp': [{HostPort: '27017'}]} // Bind container port to host port
+                    //     },
+                    //     name: containerName
+                    // };
+                    // return actions.startContainer(mongoContainerOptions);
+                    const buildOptions = {
+                        t: containerName + '-template', // Tag for the image
                         ExposedPorts: {'27017/tcp': {}}, // Expose MongoDB port
                         HostConfig: {
-                            PortBindings: {'27017/tcp': [{HostPort: '27017'}]} // Bind container port to host port
+                             PortBindings: {'27017/tcp': [{HostPort: '27017'}]} // Bind container port to host port
                         },
-                        name: containerName
+                        buildargs: {
+                            // Optionally specify build arguments
+                            ARG_NAME: 'value',
+                        },
                     };
-                    return actions.startContainer(mongoContainerOptions);
+                    const tarStream = require('tar-fs').pack('./images/');
+                    console.log(JSON.stringify(tarStream));
+                    // Build the image
+                    // Build the image (assuming you already have this part)
+                    docker.buildImage(tarStream, buildOptions, (error, stream) => {
+                        if (error) {
+                            console.error('Error building image:', error);
+                            return;
+                        }
+
+                        // Log build progress
+                        docker.modem.followProgress(stream, onFinished, onProgress);
+                    });
+
+                    function onFinished(error, output) {
+                        if (error) {
+                            console.error('Error building image:', error);
+                            return;
+                        }
+                        console.log('Image built successfully:', output);
+
+                        // Create a container based on the built image
+                        docker.createContainer({
+                            Image: containerName + '-template', // Tag of the built image
+                            name: containerName, // Name for the container
+                            // Add other container options if needed
+                        }, (error, container) => {
+                            if (error) {
+                                console.error('Error creating container:', error);
+                                return;
+                            }
+                            console.log('Container created:', container.id);
+
+                            // Start the container
+                            container.start((error) => {
+                                if (error) {
+                                    console.error('Error starting container:', error);
+                                    return;
+                                }
+                                console.log('Container started successfully');
+                            });
+                        });
+                    }
+                    return;
                 } else if(containerExists && containerRunning){
                     console.log('MongoDB Already Running"')
                     sendParent('CONTAINERS_READY');
