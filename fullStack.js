@@ -168,6 +168,12 @@ const dockerScriptMachine = Machine(
                     // return actions.startContainer(mongoContainerOptions);
                     const buildOptions = {
                         t: containerName + '-template', // Tag for the image
+                        AttachStdin: false,
+                        AttachStdout: true,
+                        AttachStderr: true,
+                        Tty: true,
+                        OpenStdin: false,
+                        StdinOnce: false,
                         ExposedPorts: {'27017/tcp': {}}, // Expose MongoDB port
                         HostConfig: {
                              PortBindings: {'27017/tcp': [{HostPort: '27017'}]} // Bind container port to host port
@@ -202,6 +208,10 @@ const dockerScriptMachine = Machine(
                         docker.createContainer({
                             Image: containerName + '-template', // Tag of the built image
                             name: containerName, // Name for the container
+                            ExposedPorts: {'27017/tcp': {}}, // Expose MongoDB port
+                            HostConfig: {
+                                PortBindings: {'27017/tcp': [{HostPort: '27017'}]} // Bind container port to host port
+                            },
                             // Add other container options if needed
                         }, (error, container) => {
                             if (error) {
