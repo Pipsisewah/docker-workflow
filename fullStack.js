@@ -6,6 +6,7 @@ const docker = new Docker();
 const mongoServices = require('./services/mongodb');
 const mainStateMachine = require('./stateMachines/main');
 const dockerActions = require('./actions/dockerActions');
+const nginxActions = require('./actions/nginxActions');
 
 async function pullImages() {
     await actions.pullImage('mongo:latest');
@@ -29,8 +30,8 @@ async function startNginx() {
 const actions = {
     pullImage: dockerActions.pullImage,
     startContainer: dockerActions.startContainer,
-    checkMongoDBReady: dockerActions.checkMongoDBReady,
-    connectAndInsertDocument: dockerActions.connectAndInsertDocument,
+    checkMongoDBReady: nginxActions.checkMongoDBReady,
+    connectAndInsertDocument: nginxActions.connectAndInsertDocument,
 };
 
 const services = {

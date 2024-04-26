@@ -1,4 +1,5 @@
 const Docker = require('dockerode');
+const fs = require("fs");
 const docker = new Docker();
 
 const services = {};
@@ -8,7 +9,11 @@ function onProgress(event) {
 }
 
 services.startMongoDB =  async () => {
-    const containerName = 'my_mongodb_container';
+    const dockerfileContent = fs.readFileSync("./config/mongodb.json", 'utf-8');
+    const parsedData = JSON.parse(dockerfileContent);
+    const containerName = parsedData.containerName//'my_mongodb_container';
+    const dockerFileName = parsedData.dockerFileName;
+    console.log(`ContainerName ${containerName}`);
     let containerExists = false;
     let containerRunning = false;
     try{
@@ -20,9 +25,11 @@ services.startMongoDB =  async () => {
         console.log(err.message);
     }
     if(!containerExists) {
+        console.log('Container does not exist!  Building a new one');
         const buildOptions = {
             t: containerName + '-template', // Tag for the image
-            ExposedPorts: {'27017/tcp': {}}, // Expose MongoDB port
+            dockerfile: dockerFileName,
+            ExposedPorts: {'27017/tcp': {}}, // Expose Dockerfile port
             HostConfig: {
                 PortBindings: {'27017/tcp': [{HostPort: '27017'}]} // Bind container port to host port
             },
@@ -31,6 +38,7 @@ services.startMongoDB =  async () => {
                 ARG_NAME: 'value',
             },
         };
+        console.log(`buildOptions ${JSON.stringify(buildOptions)}`);
         const tarStream = require('tar-fs').pack('./images/');
         console.log(JSON.stringify(tarStream));
         // Build the image
@@ -53,10 +61,11 @@ services.startMongoDB =  async () => {
             console.log('Image built successfully:', output);
 
             // Create a container based on the built image
+
             docker.createContainer({
                 Image: containerName + '-template', // Tag of the built image
                 name: containerName, // Name for the container
-                ExposedPorts: {'27017/tcp': {}}, // Expose MongoDB port
+                ExposedPorts: {'27017/tcp': {}}, // Expose Dockerfile port
                 HostConfig: {
                     PortBindings: {'27017/tcp': [{HostPort: '27017'}]} // Bind container port to host port
                 },
@@ -82,7 +91,7 @@ services.startMongoDB =  async () => {
     } else if(containerExists && containerRunning){
         return;
     } else {
-        console.log('MongoDB Exists but is not running.  Starting!');
+        console.log('Dockerfile Exists but is not running.  Starting!');
         const container = await docker.getContainer(containerName);
         await container.start();
     }
