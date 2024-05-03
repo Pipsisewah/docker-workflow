@@ -29,7 +29,7 @@ services:
   #     - db
 
   amass:
-    image: amass-test:latest
+    image: caffix/amass:latest
     volumes:
       - ./app-volume:/amass/
     ports:
