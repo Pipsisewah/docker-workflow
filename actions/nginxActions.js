@@ -1,6 +1,7 @@
 const Docker = require('dockerode');
 const docker = new Docker();
 const {MongoClient: mongoClient} = require("mongodb");
+const axios = require('axios');
 
 const nginxActions = {}
 
@@ -30,6 +31,20 @@ nginxActions.checkMongoDBReady = async () => {
     };
 
     await check();
+
+    // Function to notify main service about completion
+    function notifyMainService(containerId, status) {
+        axios.post('http://localhost:3000/notify', { containerId, status })
+            .then(response => {
+                console.log('Notification sent successfully');
+            })
+            .catch(error => {
+                console.error('Error sending notification:', error);
+            });
+    }
+
+// Call notifyMainService when job is completed
+    notifyMainService('container1', 'Job completed');
 };
 
 nginxActions.connectAndInsertDocument =  async () => {
@@ -42,7 +57,7 @@ nginxActions.connectAndInsertDocument =  async () => {
     console.log('Connecting to db to write');
     const db = client.db('test');
     const collection = db.collection('documents');
-    await collection.insertOne({ message: 'Hello from Nginx! Again' });
+    await collection.insertOne({ message: 'Hello from Nginx! Configured' });
     console.log('Should have written to database');
     await client.close();
     console.log('Connectin to DB should now be closed');

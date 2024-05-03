@@ -7,6 +7,8 @@ const mongoServices = require('./services/mongodb');
 const mainStateMachine = require('./stateMachines/main');
 const dockerActions = require('./actions/dockerActions');
 const nginxActions = require('./actions/nginxActions');
+require('./api/index');
+
 
 async function pullImages() {
     await actions.pullImage('mongo:latest');
@@ -16,6 +18,7 @@ async function pullImages() {
 
 async function startNginx() {
     const nginxContainerOptions = {
+        t: 'nginx', // Tag for the image
         Image: 'nginx:latest',
         ExposedPorts: { '80/tcp': {} },
         HostConfig: {

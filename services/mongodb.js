@@ -29,14 +29,9 @@ services.startMongoDB =  async () => {
         const buildOptions = {
             t: containerName + '-template', // Tag for the image
             dockerfile: dockerFileName,
-            ExposedPorts: {'27017/tcp': {}}, // Expose Dockerfile port
-            HostConfig: {
-                PortBindings: {'27017/tcp': [{HostPort: '27017'}]} // Bind container port to host port
-            },
-            buildargs: {
-                // Optionally specify build arguments
-                ARG_NAME: 'value',
-            },
+            ExposedPorts: parsedData.exposedPorts, // Expose Dockerfile port
+            HostConfig: parsedData.HostConfig,
+            buildargs: parsedData.arguments,
         };
         console.log(`buildOptions ${JSON.stringify(buildOptions)}`);
         const tarStream = require('tar-fs').pack('./images/');

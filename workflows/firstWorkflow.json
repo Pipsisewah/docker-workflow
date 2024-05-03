@@ -1,0 +1,41 @@
+{
+  "meta": {
+
+  },
+  "workflow": [
+    {
+      "type": "container",
+      "name": "mongodb",
+      "blocking": true,
+      "config": {
+        "dockerfile": "MongoDB",
+        "containerName": "my_mongodb_container",
+        "dockerFileName": "mongoDBImage",
+        "exposedPorts": {"27017/tcp": {}},
+        "HostConfig": { "PortBindings": {"27017/tcp": [{"HostPort": "27017"}]}},
+        "network": "bridge",
+        "arguments": {
+          "ENV_VAR1": "value1",
+          "ENV_VAR2": "value2"
+        }
+      }
+    },
+    {
+      "type": "container",
+      "name": "amass",
+      "blocking": true,
+      "config": {
+        "dockerfile": "Nginx",
+        "containerName": "nginx_container",
+        "dockerFileName": "nginxImage",
+        "exposedPorts": {"8080/tcp": {}},
+        "HostConfig": { "PortBindings": {"8080/tcp": [{"HostPort": "8080"}]}},
+        "network": "bridge",
+        "arguments": {
+          "ENV_VAR1": "value1",
+          "ENV_VAR2": "value2"
+        }
+      }
+    }
+  ]
+}

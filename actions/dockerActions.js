@@ -1,5 +1,6 @@
 const Docker = require('dockerode');
 const {MongoClient: mongoClient} = require("mongodb");
+const axios = require("axios");
 const docker = new Docker();
 
 const dockerActions = {};
@@ -36,6 +37,19 @@ dockerActions.startContainer =  async (containerOptions) => {
                 }
                 resolve(container);
             });
+
+            function notifyMainService(containerId, status) {
+                axios.post('http://localhost:3000/notify', { containerId, status })
+                    .then(response => {
+                        console.log('Notification sent successfully');
+                    })
+                    .catch(error => {
+                        console.error('Error sending notification:', error);
+                    });
+            }
+
+// Call notifyMainService when job is completed
+            notifyMainService(containerOptions.t, 'Job completed');
         });
     });
 };
