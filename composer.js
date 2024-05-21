@@ -1,5 +1,5 @@
 const workflowComposer = require('./workflowComposer');
-const { Machine, assign, sendParent, send } = require('xstate');
+const { Machine, assign, sendParent, send, interpret} = require('xstate');
 const dockerActions = require('./actions/dockerActions');
 const nginxActions = require("./actions/nginxActions");
 const mainStateMachine = require("./stateMachines/main");
@@ -39,9 +39,19 @@ function compileListOfRequiredImages(workflow) {
 
 async function main() {
     const workflowDefinition = await workflowComposer.readWorkflow('firstWorkflow');
-    //console.log(JSON.stringify(workflowDefinition));
+    console.log(JSON.stringify(workflowDefinition));
     const requiredDockerImages = compileListOfRequiredImages(workflowDefinition.workflow);
     await pullImages(requiredDockerImages);
+    const testMachine = Machine(
+        workflowDefinition,
+        {
+            actions,
+            services
+        }
+    );
+    const interpreter = interpret(testMachine)
+        .onTransition(state => console.log('Current state:', state.value))
+        .start();
 }
 
 main().then(() => {
