@@ -1,0 +1,92 @@
+{
+  "stateMachine": {
+    "id": "dockerScript",
+    "initial": "pullingImages",
+    "context": {
+      "containers": [
+        {
+          "name": "mongodb",
+          "config": {
+            "dockerfile": "MongoDB",
+            "containerName": "my_mongodb_container",
+            "dockerFileName": "mongoDBImage",
+            "dockerImage": "mongo:latest",
+            "exposedPorts": {"27017/tcp": {}},
+            "HostConfig": { "PortBindings": {"27017/tcp": [{"HostPort": "27017"}]}},
+            "network": "bridge",
+            "arguments": {
+              "ENV_VAR1": "value1",
+              "ENV_VAR2": "value2"
+            }
+          }
+        },
+        {
+          "name": "amass",
+          "config": {
+            "dockerfile": "Nginx",
+            "containerName": "nginx_container",
+            "dockerFileName": "nginxImage",
+            "dockerImage": "nginx:latest",
+            "exposedPorts": {"8080/tcp": {}},
+            "HostConfig": { "PortBindings": {"8080/tcp": [{"HostPort": "8080"}]}},
+            "network": "bridge",
+            "arguments": {
+              "ENV_VAR1": "value1",
+              "ENV_VAR2": "value2"
+            }
+          }
+        }
+      ]
+    },
+    "states": {
+      "pullingImages": {
+        "invoke": {
+          "src": "pullImages",
+          "onDone": {
+            "actions": "updateMeta",
+            "target": "startingMongoDB"
+          }
+        }
+      },
+      "startingMongoDB": {
+        "invoke": {
+          "id": "startMongoDB",
+          "src": "startContainer",
+          "onDone": "checkingMongoDB",
+          "meta": {
+            "type": "containerData",
+            "containerName": "slopes"
+          }
+        },
+        "meta": {
+          "type": "containerData",
+          "containerName": "slopes"
+        },
+        "entry": "updateMeta"
+      },
+      "checkingMongoDB": {
+        "invoke": {
+          "src": "checkMongoDBReady",
+          "onDone": "startingNginx"
+        }
+      },
+      "startingNginx": {
+        "invoke": {
+          "src": "startNginx",
+          "onDone": "connectingAndInsertingDocument"
+        }
+      },
+      "connectingAndInsertingDocument": {
+        "invoke": {
+          "src": "connectAndInsertDocument",
+          "onDone": {
+            "target": "running"
+          }
+        }
+      },
+      "running": {
+        "type": "final"
+      }
+    }
+  }
+}

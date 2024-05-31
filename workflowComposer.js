@@ -43,9 +43,9 @@ workflowComposer.readWorkflow = async (workflowName) => {
         // Parse the JSON data
         const jsonData = JSON.parse(data.toString());
         //console.log('Parsed JSON data:', jsonData);
+        return jsonData;
 
-
-        return workflowComposer.createDynamicStateMachineStructure(jsonData);
+        //return workflowComposer.createDynamicStateMachineStructure(jsonData);
     } catch (error) {
         console.error('An error occurred:', error);
         throw error; // Re-throw the error to handle it outside the function if needed

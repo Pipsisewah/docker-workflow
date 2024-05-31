@@ -4,44 +4,48 @@ const dockerActions = require('./actions/dockerActions');
 const nginxActions = require("./actions/nginxActions");
 const mainStateMachine = require("./stateMachines/main");
 
-async function pullImages(images) {
-    for (const image of images) {
-        console.log(`Pulling image: ${image}`);
-        await actions.pullImage(image);
+function startContainerFactory(containerName) {
+    return {
+        src: startContainer(containerName)
+    }
+}
+async function pullImages(context) {
+    for (const image of context.containers) {
+        console.log(`Pulling image: ${image.name}`);
+        await actions.pullImage(image.config.dockerImage);
     }
     console.log('Images have been pulled');
 }
 
+async function startContainer(context, event) {
+    console.log(`Event ${JSON.stringify(context)}`);
+    const container = context.containers[event.data.containerName];
+    console.log(JSON.stringify(container));
+    await actions.startContainer(container.config)
+}
 
 
 
 const actions = {
-    pullImage: dockerActions.pullImage,
     startContainer: dockerActions.startContainer,
+    pullImage: dockerActions.pullImage,
+    updateMeta: assign({
+        currentStateMeta: (context, event, meta) => meta.state.meta[meta.state.value]
+    })
 };
 
-const services = {};
-
-
-const dockerScriptMachine = Machine(
-    mainStateMachine,
-    {
-        actions,
-        services,
-    }
-);
-
-function compileListOfRequiredImages(workflow) {
-    return workflow
-        .filter(step => step.type === 'container')
-        .map(step => step.config.dockerImage);
-}
+const services = {
+    pullImages,
+    startContainer
+};
 
 async function main() {
-    const workflowDefinition = await workflowComposer.readWorkflow('firstWorkflow');
-    console.log(JSON.stringify(workflowDefinition));
-    const requiredDockerImages = compileListOfRequiredImages(workflowDefinition.workflow);
-    await pullImages(requiredDockerImages);
+    const fullWorkflowDefinition = await workflowComposer.readWorkflow('secondWorkflow');
+    console.log(JSON.stringify(fullWorkflowDefinition));
+    const workflowDefinition = fullWorkflowDefinition.stateMachine;
+    const requiredDockerImages = fullWorkflowDefinition.containers;
+
+    //await pullImages(requiredDockerImages);
     const testMachine = Machine(
         workflowDefinition,
         {
@@ -50,7 +54,11 @@ async function main() {
         }
     );
     const interpreter = interpret(testMachine)
-        .onTransition(state => console.log('Current state:', state.value))
+        .onTransition((state) => {
+            if (state.changed) {
+                console.log(state.context.currentStateMeta);
+            }
+        })
         .start();
 }
 
