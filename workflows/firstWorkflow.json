@@ -39,5 +39,34 @@
         }
       }
     }
-  ]
+  ],
+  "pullingImages": {
+    "invoke": {
+      "src": "pullImages",
+      "onDone": {
+        "actions": "updateMeta",
+        "target": "startingMongoDB"
+      }
+    }
+  },
+  "checkingMongoDB": {
+    "invoke": {
+      "src": "checkMongoDBReady",
+      "onDone": "startingNginx"
+    }
+  },
+  "startingNginx": {
+    "invoke": {
+      "src": "startNginx",
+      "onDone": "connectingAndInsertingDocument"
+    }
+  },
+  "connectingAndInsertingDocument": {
+    "invoke": {
+      "src": "connectAndInsertDocument",
+      "onDone": {
+        "target": "running"
+      }
+    }
+  }
 }

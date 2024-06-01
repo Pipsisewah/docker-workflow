@@ -3,12 +3,8 @@ const { Machine, assign, sendParent, send, interpret} = require('xstate');
 const dockerActions = require('./actions/dockerActions');
 const nginxActions = require("./actions/nginxActions");
 const mainStateMachine = require("./stateMachines/main");
+require('./api/index');
 
-function startContainerFactory(containerName) {
-    return {
-        src: startContainer(containerName)
-    }
-}
 async function pullImages(context) {
     for (const image of context.containers) {
         console.log(`Pulling image: ${image.name}`);
@@ -17,26 +13,31 @@ async function pullImages(context) {
     console.log('Images have been pulled');
 }
 
-async function startContainer(context, event) {
-    console.log(`Event ${JSON.stringify(context)}`);
-    const container = context.containers[event.data.containerName];
+startContainer = async (context, event, { action }) => {
+    console.log(`Event ${JSON.stringify(action.container)}`);
+    const container = context.containers.find(container => container.name === action.container)
     console.log(JSON.stringify(container));
-    await actions.startContainer(container.config)
+    const containerConfig = {
+        t: container.config.containerName, // Tag for the image
+        Image: container.config.dockerImage,
+        ExposedPorts: container.config.exposedPorts,
+        HostConfig: container.config.HostConfig
+    };
+    console.log(`Container Config ${JSON.stringify(containerConfig)}`);
+    await dockerActions.startContainer(containerConfig)
 }
 
 
 
 const actions = {
-    startContainer: dockerActions.startContainer,
+    startContainer: assign(async (context, event, meta) => {
+        await startContainer(context, event, meta);
+    }),
     pullImage: dockerActions.pullImage,
-    updateMeta: assign({
-        currentStateMeta: (context, event, meta) => meta.state.meta[meta.state.value]
-    })
 };
 
 const services = {
     pullImages,
-    startContainer
 };
 
 async function main() {

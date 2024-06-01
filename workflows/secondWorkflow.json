@@ -1,8 +1,9 @@
 {
   "stateMachine": {
     "id": "dockerScript",
-    "initial": "pullingImages",
+    "initial": "startingMongoDB",
     "context": {
+      "dataToPass": null,
       "containers": [
         {
           "name": "mongodb",
@@ -39,49 +40,15 @@
       ]
     },
     "states": {
-      "pullingImages": {
-        "invoke": {
-          "src": "pullImages",
-          "onDone": {
-            "actions": "updateMeta",
-            "target": "startingMongoDB"
-          }
-        }
-      },
       "startingMongoDB": {
-        "invoke": {
-          "id": "startMongoDB",
-          "src": "startContainer",
-          "onDone": "checkingMongoDB",
-          "meta": {
-            "type": "containerData",
-            "containerName": "slopes"
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "mongodb"
           }
-        },
-        "meta": {
-          "type": "containerData",
-          "containerName": "slopes"
-        },
-        "entry": "updateMeta"
-      },
-      "checkingMongoDB": {
-        "invoke": {
-          "src": "checkMongoDBReady",
-          "onDone": "startingNginx"
-        }
-      },
-      "startingNginx": {
-        "invoke": {
-          "src": "startNginx",
-          "onDone": "connectingAndInsertingDocument"
-        }
-      },
-      "connectingAndInsertingDocument": {
-        "invoke": {
-          "src": "connectAndInsertDocument",
-          "onDone": {
-            "target": "running"
-          }
+        ],
+        "on": {
+          "NEXT": "running"
         }
       },
       "running": {

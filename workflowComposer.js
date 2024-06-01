@@ -15,6 +15,7 @@ function createPullingImagesState(workflow) {
 
 }
 
+
 workflowComposer.createDynamicStateMachineStructure = (workflow) => {
     const stateMachine = {
         id: 'dockerScript',
