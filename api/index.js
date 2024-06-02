@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 
 app.use(bodyParser.json());
 
+const server = {};
+
 // API endpoint to receive notifications from containers
 app.post('/notify', (req, res) => {
     const { containerId, status } = req.body;
@@ -11,6 +13,10 @@ app.post('/notify', (req, res) => {
     res.sendStatus(200);
 });
 
-app.listen(3000, () => {
-    console.log('Main service listening on port 3000');
-});
+server.start = (port) => {
+    return app.listen(port, () => {
+        console.log('Main service listening on port 3000');
+    });
+}
+
+module.exports = server;

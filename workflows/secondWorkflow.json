@@ -1,7 +1,7 @@
 {
   "stateMachine": {
     "id": "dockerScript",
-    "initial": "startingMongoDB",
+    "initial": "startMongoDB",
     "context": {
       "dataToPass": null,
       "containers": [
@@ -40,11 +40,22 @@
       ]
     },
     "states": {
-      "startingMongoDB": {
+      "startMongoDB": {
         "entry": [
           {
             "type": "startContainer",
             "container": "mongodb"
+          }
+        ],
+        "on": {
+          "NEXT": "startNginx"
+        }
+      },
+      "startNginx": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "amass"
           }
         ],
         "on": {

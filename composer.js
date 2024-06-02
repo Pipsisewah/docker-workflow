@@ -3,7 +3,9 @@ const { Machine, assign, sendParent, send, interpret} = require('xstate');
 const dockerActions = require('./actions/dockerActions');
 const nginxActions = require("./actions/nginxActions");
 const mainStateMachine = require("./stateMachines/main");
-require('./api/index');
+const express = require('./api/index');
+
+let mainService;
 
 async function pullImages(context) {
     for (const image of context.containers) {
@@ -24,7 +26,19 @@ startContainer = async (context, event, { action }) => {
         HostConfig: container.config.HostConfig
     };
     console.log(`Container Config ${JSON.stringify(containerConfig)}`);
-    await dockerActions.startContainer(containerConfig)
+    await dockerActions.startContainer(containerConfig);
+    await verifyContainerServiceStarted(container);
+    console.log('Container Started');
+    mainService.send('NEXT')
+}
+
+verifyContainerServiceStarted = async (container) => {
+    const portKey = Object.keys(container.config.exposedPorts)[0];
+    const port = portKey.split('/')[0];
+    if(port === "27017") {
+        console.log('Checking if MongoDB is ready');
+        await nginxActions.checkMongoDBReady();
+    }
 }
 
 
@@ -41,6 +55,7 @@ const services = {
 };
 
 async function main() {
+    const expressServer = express.start(3000);
     const fullWorkflowDefinition = await workflowComposer.readWorkflow('secondWorkflow');
     console.log(JSON.stringify(fullWorkflowDefinition));
     const workflowDefinition = fullWorkflowDefinition.stateMachine;
@@ -54,11 +69,15 @@ async function main() {
             services
         }
     );
-    const interpreter = interpret(testMachine)
+    mainService = interpret(testMachine)
         .onTransition((state) => {
             if (state.changed) {
                 console.log(state.context.currentStateMeta);
             }
+        })
+        .onDone((context, event) => {
+            console.log('State machine reached final state');
+            expressServer.close()
         })
         .start();
 }
