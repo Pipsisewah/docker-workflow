@@ -18,15 +18,14 @@ startContainer = async (context, event, { action }) => {
     console.log(`Event ${JSON.stringify(action.container)}`);
     const container = context.containers.find(container => container.name === action.container)
     console.log(JSON.stringify(container));
-    //dockerfile: container.config.dockerFileName,
     const containerConfig = {
-        t: container.name,
-        name: container.name,
+        t: container.config.containerName,
+        name: container.config.containerName,
         Image: container.config.dockerImage,
         ExposedPorts: container.config.exposedPorts,
         HostConfig: container.config.HostConfig,
         buildargs: container.config.arguments,
-        dockerFileName: container.config.dockerFileName,
+        dockerFolderName: container.config.dockerFolderName,
     };
     console.log(`Container Config ${JSON.stringify(containerConfig)}`);
     await dockerActions.startContainer(containerConfig);

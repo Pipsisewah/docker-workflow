@@ -3,15 +3,12 @@
     "id": "dockerScript",
     "initial": "startMongoDB",
     "context": {
-      "dataToPass": null,
       "containers": [
         {
           "name": "mongodb",
           "config": {
-            "dockerfile": "MongoDB",
             "containerName": "my_mongodb_container",
-            "dockerFileName": "mongoDBImage",
-            "dockerImage": "mongo:latest",
+            "dockerFolderName": "mongoDBImage",
             "exposedPorts": {"27017/tcp": {}},
             "HostConfig": { "PortBindings": {"27017/tcp": [{"HostPort": "27017"}]}},
             "network": "bridge",
@@ -24,10 +21,8 @@
         {
           "name": "amass",
           "config": {
-            "dockerfile": "Nginx",
             "containerName": "nginx_container",
-            "dockerFileName": "nginxImage",
-            "dockerImage": "nginx:latest",
+            "dockerFolderName": "nginxImage",
             "exposedPorts": {"8080/tcp": {}},
             "HostConfig": { "PortBindings": {"8080/tcp": [{"HostPort": "8080"}]}},
             "network": "bridge",
@@ -48,10 +43,10 @@
           }
         ],
         "on": {
-          "NEXT": "startNginx"
+          "NEXT": "startAmass"
         }
       },
-      "startNginx": {
+      "startAmass": {
         "entry": [
           {
             "type": "startContainer",

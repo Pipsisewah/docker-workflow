@@ -38,6 +38,7 @@ const buildImage = async (docker, contextPath, imageName) => {
         },
         {
             t: imageName, // Tag your image
+            pull: true,
         }
     );
 
@@ -73,7 +74,7 @@ dockerActions.startContainer =  async (containerOptions) => {
 
     if(!containerExists){
         console.log('Building image...');
-        const contextPath = path.join(__dirname, '../images/', containerOptions.dockerFileName);
+        const contextPath = path.join(__dirname, '../images/', containerOptions.dockerFolderName);
         containerOptions.builtImageName = containerOptions.name + '-template';
         await buildImage(docker, contextPath, containerOptions.builtImageName);
         console.log(`Image built successfully ${containerOptions.builtImageName}`);
