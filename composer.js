@@ -2,7 +2,6 @@ const workflowComposer = require('./workflowComposer');
 const { Machine, assign, sendParent, send, interpret} = require('xstate');
 const dockerActions = require('./actions/dockerActions');
 const nginxActions = require("./actions/nginxActions");
-const mainStateMachine = require("./stateMachines/main");
 const express = require('./api/index');
 
 let mainService;
@@ -27,6 +26,7 @@ startContainer = async (context, event, { action }) => {
         ExposedPorts: container.config.exposedPorts,
         HostConfig: container.config.HostConfig,
         buildargs: container.config.arguments,
+        dockerFileName: container.config.dockerFileName,
     };
     console.log(`Container Config ${JSON.stringify(containerConfig)}`);
     await dockerActions.startContainer(containerConfig);
