@@ -4,6 +4,7 @@ const axios = require("axios");
 const docker = new Docker();
 const fs = require('fs');
 const util = require('util');
+const path = require('path');
 
 const dockerActions = {};
 
@@ -29,6 +30,35 @@ function onProgress(event) {
     console.log('Build progress:', event);
 }
 
+const buildImage = async (docker, contextPath, imageName) => {
+    const stream = await docker.buildImage(
+        {
+            context: contextPath,
+            src: ['Dockerfile'], // Include other necessary files
+        },
+        {
+            t: imageName, // Tag your image
+        }
+    );
+
+    await new Promise((resolve, reject) => {
+        docker.modem.followProgress(stream, (err, res) => (err ? reject(err) : resolve(res)));
+    });
+};
+
+const createAndStartContainer = async (docker, containerOptions) => {
+    const container = await docker.createContainer({
+        Image: containerOptions.builtImageName,
+        name: containerOptions.name,
+        Tty: true,
+        ExposedPorts: containerOptions.ExposedPorts,
+        HostConfig: containerOptions.HostConfig
+    });
+
+    await container.start();
+    return container;
+};
+
 dockerActions.startContainer =  async (containerOptions) => {
     let containerExists = false;
     let containerRunning = false;
@@ -42,40 +72,14 @@ dockerActions.startContainer =  async (containerOptions) => {
     }
 
     if(!containerExists){
-        return new Promise((resolve, reject) => {
-            const fileInfo = fs.readFileSync('./images/'+ containerOptions.dockerFileName);
-            docker.buildImage(fileInfo, containerOptions, (error, stream) => {
-                if (error) {
-                    console.error('Error building image:', error);
-                    return;
-                }
-
-                // Log build progress
-                docker.modem.followProgress(stream, onFinished, onProgress);
-            });
-
-            function onFinished(error, output) {
-                if (error) {
-                    console.error('Error building image:', error);
-                    return;
-                }
-                console.log('Image built successfully:', output);
-
-                docker.createContainer(containerOptions, (err, container) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    container.start((err) => {
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
-                        resolve(container);
-                    });
-                });
-            };
-        });
+        console.log('Building image...');
+        const contextPath = path.join(__dirname, '../images/', containerOptions.dockerFileName);
+        containerOptions.builtImageName = containerOptions.name + '-template';
+        await buildImage(docker, contextPath, containerOptions.builtImageName);
+        console.log(`Image built successfully ${containerOptions.builtImageName}`);
+        console.log('Creating and starting container...');
+        const container = await createAndStartContainer(docker, containerOptions);
+        console.log('Container started successfully');
     } else if(!containerRunning){
         console.log('Dockerfile Exists but is not running.  Starting!');
         const container = await docker.getContainer(containerOptions.name);
