@@ -9,9 +9,6 @@ const tar = require('tar-fs');
 
 const dockerActions = {};
 
-let networkId = null;
-const networkName = "my_network";
-
 async function getNetworkIdByName(networkName) {
     try {
         const networks = await docker.listNetworks();
@@ -29,7 +26,7 @@ async function getNetworkIdByName(networkName) {
     }
 }
 
-async function getNetworkId(){
+async function getNetworkId(networkName){
     const netId = await getNetworkIdByName(networkName);
     networkId = netId || null;
     console.log(`Network Id: ${networkId}`);
@@ -49,28 +46,6 @@ async function getNetworkId(){
     return networkId;
 }
 
-dockerActions.pullImage =  async (imageName) => {
-    return new Promise((resolve, reject) => {
-        docker.pull(imageName, (err, stream) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            docker.modem.followProgress(stream, (err, output) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve(output);
-            });
-        });
-    });
-};
-
-function onProgress(event) {
-    console.log('Build progress:', event);
-}
-
 const buildImage = async (docker, contextPath, imageName) => {
     console.log(`Running BuildImage on ${imageName}`);
     const tarStream = tar.pack(contextPath);
@@ -87,18 +62,25 @@ const buildImage = async (docker, contextPath, imageName) => {
     });
 };
 
-const createAndStartContainer = async (docker, containerOptions) => {
-    const containerNetworkId = await getNetworkId();
+const createAndStartContainer = async (docker, containerConfig) => {
+    console.log('Building image...');
+    console.log(`What is container ${containerConfig}`);
+    const builtImageName = containerConfig.containerName + '-container'
+    const contextPath = path.join(__dirname, '../images/', containerConfig.dockerFolderName);
+    await buildImage(docker, contextPath, builtImageName);
+    console.log(`Image built successfully ${builtImageName}`);
+    console.log('Creating and starting container...');
+    const containerNetworkId = await getNetworkId(containerConfig.networkName);
     console.log(`Applying the following network ID: ${containerNetworkId}`);
     const container = await docker.createContainer({
-        Image: containerOptions.builtImageName,
-        name: containerOptions.name,
+        t: containerConfig.containerName,
+        Image: builtImageName,
+        name: containerConfig.containerName,
         Tty: true,
-        ExposedPorts: containerOptions.ExposedPorts,
         HostConfig: {
-            NetworkMode: networkName,
-            PortBindings: containerOptions.PortBindings,
-            ExposedPorts: containerOptions.ExposedPorts,
+            NetworkMode: containerConfig.networkName,
+            PortBindings: containerConfig.PortBindings,
+            ExposedPorts: containerConfig.ExposedPorts,
         },
     });
 
@@ -106,31 +88,25 @@ const createAndStartContainer = async (docker, containerOptions) => {
     return container;
 };
 
-dockerActions.startContainer =  async (containerOptions) => {
+dockerActions.startContainer =  async (containerConfig) => {
     let containerExists = false;
     let containerRunning = false;
     try{
-        const container = await docker.getContainer(containerOptions.name).inspect();
+        const containerLookup = await docker.getContainer(containerConfig.containerName).inspect();
         containerExists = true;
-        containerRunning = (container.State.Running === true);
+        containerRunning = (containerLookup.State.Running === true);
     } catch (err) {
         // Do nothing, already set to false
         console.log(err.message);
     }
 
     if(!containerExists){
-        console.log('Building image...');
-        const contextPath = path.join(__dirname, '../images/', containerOptions.dockerFolderName);
-        containerOptions.builtImageName = containerOptions.name + '-container';
-        await buildImage(docker, contextPath, containerOptions.builtImageName);
-        console.log(`Image built successfully ${containerOptions.builtImageName}`);
-        console.log('Creating and starting container...');
-        const container = await createAndStartContainer(docker, containerOptions);
+        const container = await createAndStartContainer(docker, containerConfig);
         console.log('Container started successfully');
     } else if(!containerRunning){
         console.log('Dockerfile Exists but is not running.  Starting!');
-        const container = await docker.getContainer(containerOptions.name);
-        await container.start();
+        const containerLookup = await docker.getContainer(containerConfig.containerName);
+        await containerLookup.start();
     }else {
         console.log('Dockerfile already running!');
     }

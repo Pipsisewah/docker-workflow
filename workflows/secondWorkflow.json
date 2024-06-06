@@ -9,7 +9,7 @@
           "dockerFolderName": "mongoDBImage",
           "ExposedPorts": {"27017/tcp": {}},
           "PortBindings": { "27017/tcp": [{ "HostPort": "27017" }]},
-          "network": "bridge",
+          "networkName": "workflows",
           "arguments": {
             "ENV_VAR1": "value1",
             "ENV_VAR2": "value2"
@@ -20,7 +20,7 @@
           "dockerFolderName": "nginxImage",
           "ExposedPorts": {"8080/tcp": {}},
           "PortBindings": { "8080/tcp": [{ "HostPort": "8080" }]},
-          "network": "bridge",
+          "networkName": "workflows",
           "arguments": {
             "ENV_VAR1": "value1",
             "ENV_VAR2": "value2"

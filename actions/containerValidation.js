@@ -3,9 +3,9 @@ const docker = new Docker();
 const {MongoClient: mongoClient} = require("mongodb");
 const axios = require('axios');
 
-const nginxActions = {}
+const containerValidation = {}
 
-nginxActions.checkMongoDBReady = async () => {
+containerValidation.checkMongoDBReady = async () => {
     let attempts = 0;
     const maxAttempts = 10;
     const delay = 3000; // Delay in milliseconds between attempts
@@ -47,20 +47,4 @@ nginxActions.checkMongoDBReady = async () => {
     notifyMainService('container1', 'Job completed');
 };
 
-nginxActions.connectAndInsertDocument =  async () => {
-    console.log('Now in connectAndInsertDocument');
-    console.log('Connecting to Dockerfile');
-    const client = await mongoClient.connect(
-        'mongodb://localhost:27017',
-        { useNewUrlParser: true, useUnifiedTopology: true }
-    );
-    console.log('Connecting to db to write');
-    const db = client.db('test');
-    const collection = db.collection('documents');
-    await collection.insertOne({ message: 'Hello from Nginx! Configured' });
-    console.log('Should have written to database');
-    await client.close();
-    console.log('Connectin to DB should now be closed');
-}
-
-module.exports = nginxActions;
+module.exports = containerValidation;

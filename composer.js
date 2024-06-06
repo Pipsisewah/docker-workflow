@@ -1,23 +1,14 @@
 const workflowComposer = require('./workflowComposer');
 const { Machine, assign, sendParent, send, interpret} = require('xstate');
 const dockerActions = require('./actions/dockerActions');
-const nginxActions = require("./actions/nginxActions");
+const containerValidation = require("./actions/containerValidation");
 const express = require('./api/index');
 
 let mainService;
 
 startContainer = async (context, event, { action }) => {
     const container = context.containers.find(container => container.containerName === action.container)
-    const containerConfig = {
-        t: container.containerName,
-        name: container.containerName,
-        Image: container.dockerImage,
-        ExposedPorts: container.ExposedPorts,
-        PortBindings: container.PortBindings,
-        buildargs: container.arguments,
-        dockerFolderName: container.dockerFolderName,
-    };
-    await dockerActions.startContainer(containerConfig);
+    await dockerActions.startContainer(container);
     await verifyContainerServiceStarted(container);
     console.log('Container Started');
     mainService.send('NEXT')
@@ -28,7 +19,7 @@ verifyContainerServiceStarted = async (container) => {
     const port = portKey.split('/')[0];
     if(port === "27017") {
         console.log('Checking if MongoDB is ready');
-        await nginxActions.checkMongoDBReady();
+        await containerValidation.checkMongoDBReady();
     }
 }
 
@@ -38,7 +29,6 @@ const actions = {
     startContainer: assign(async (context, event, meta) => {
         await startContainer(context, event, meta);
     }),
-    pullImage: dockerActions.pullImage,
 };
 
 const services = {};
