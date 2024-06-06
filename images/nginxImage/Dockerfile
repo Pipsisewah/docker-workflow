@@ -1,14 +1,30 @@
 # Use the official NGINX image as the base image
-FROM nginx:latest
+FROM node:20
 
-# Copy custom configuration file from the host into the container
-#COPY nginx.conf /etc/nginx/nginx.conf
+# Create and change to the app directory
+WORKDIR /usr/src/app
 
-# Copy static files (e.g., HTML, CSS, JavaScript) from the host into the container
-#COPY ./html /usr/share/nginx/html
+# Copy package.json and package-lock.json
+#COPY package*.json ./
+
+# Install app dependencies
+
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install app dependencies
+RUN npm install
+
+# Copy the app files into the container
+COPY app.js .
 
 # Expose port 80 to allow external access to the NGINX server
-EXPOSE 80
+EXPOSE 8080
 
-# Start NGINX when the container starts
-CMD ["nginx", "-g", "daemon off;"]
+# Start NGINX when the container starts "app.js"
+CMD ["node", "app.js"]
+
+# Use the official Node.js image from the Docker Hub
+
+

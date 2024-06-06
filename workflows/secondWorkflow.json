@@ -5,31 +5,25 @@
     "context": {
       "containers": [
         {
-          "name": "mongodb",
-          "config": {
-            "containerName": "my_mongodb_container",
-            "dockerFolderName": "mongoDBImage",
-            "exposedPorts": {"27017/tcp": {}},
-            "HostConfig": { "PortBindings": {"27017/tcp": [{"HostPort": "27017"}]}},
-            "network": "bridge",
-            "arguments": {
-              "ENV_VAR1": "value1",
-              "ENV_VAR2": "value2"
-            }
+          "containerName": "mongodb",
+          "dockerFolderName": "mongoDBImage",
+          "ExposedPorts": {"27017/tcp": {}},
+          "PortBindings": { "27017/tcp": [{ "HostPort": "27017" }]},
+          "network": "bridge",
+          "arguments": {
+            "ENV_VAR1": "value1",
+            "ENV_VAR2": "value2"
           }
         },
         {
-          "name": "amass",
-          "config": {
-            "containerName": "nginx_container",
-            "dockerFolderName": "nginxImage",
-            "exposedPorts": {"8080/tcp": {}},
-            "HostConfig": { "PortBindings": {"8080/tcp": [{"HostPort": "8080"}]}},
-            "network": "bridge",
-            "arguments": {
-              "ENV_VAR1": "value1",
-              "ENV_VAR2": "value2"
-            }
+          "containerName": "amass",
+          "dockerFolderName": "nginxImage",
+          "ExposedPorts": {"8080/tcp": {}},
+          "PortBindings": { "8080/tcp": [{ "HostPort": "8080" }]},
+          "network": "bridge",
+          "arguments": {
+            "ENV_VAR1": "value1",
+            "ENV_VAR2": "value2"
           }
         }
       ]

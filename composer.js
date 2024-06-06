@@ -6,28 +6,17 @@ const express = require('./api/index');
 
 let mainService;
 
-async function pullImages(context) {
-    for (const image of context.containers) {
-        console.log(`Pulling image: ${image.name}`);
-        await actions.pullImage(image.config.dockerImage);
-    }
-    console.log('Images have been pulled');
-}
-
 startContainer = async (context, event, { action }) => {
-    console.log(`Event ${JSON.stringify(action.container)}`);
-    const container = context.containers.find(container => container.name === action.container)
-    console.log(JSON.stringify(container));
+    const container = context.containers.find(container => container.containerName === action.container)
     const containerConfig = {
-        t: container.config.containerName,
-        name: container.config.containerName,
-        Image: container.config.dockerImage,
-        ExposedPorts: container.config.exposedPorts,
-        HostConfig: container.config.HostConfig,
-        buildargs: container.config.arguments,
-        dockerFolderName: container.config.dockerFolderName,
+        t: container.containerName,
+        name: container.containerName,
+        Image: container.dockerImage,
+        ExposedPorts: container.ExposedPorts,
+        PortBindings: container.PortBindings,
+        buildargs: container.arguments,
+        dockerFolderName: container.dockerFolderName,
     };
-    console.log(`Container Config ${JSON.stringify(containerConfig)}`);
     await dockerActions.startContainer(containerConfig);
     await verifyContainerServiceStarted(container);
     console.log('Container Started');
@@ -35,7 +24,7 @@ startContainer = async (context, event, { action }) => {
 }
 
 verifyContainerServiceStarted = async (container) => {
-    const portKey = Object.keys(container.config.exposedPorts)[0];
+    const portKey = Object.keys(container.ExposedPorts)[0];
     const port = portKey.split('/')[0];
     if(port === "27017") {
         console.log('Checking if MongoDB is ready');
@@ -52,18 +41,13 @@ const actions = {
     pullImage: dockerActions.pullImage,
 };
 
-const services = {
-    pullImages,
-};
+const services = {};
 
 async function main() {
     const expressServer = express.start(3000);
     const fullWorkflowDefinition = await workflowComposer.readWorkflow('secondWorkflow');
     console.log(JSON.stringify(fullWorkflowDefinition));
     const workflowDefinition = fullWorkflowDefinition.stateMachine;
-    const requiredDockerImages = fullWorkflowDefinition.containers;
-
-    //await pullImages(requiredDockerImages);
     const testMachine = Machine(
         workflowDefinition,
         {
