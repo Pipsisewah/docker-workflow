@@ -9,22 +9,14 @@
           "dockerFolderName": "mongoDBImage",
           "ExposedPorts": {"27017/tcp": {}},
           "PortBindings": { "27017/tcp": [{ "HostPort": "27017" }]},
-          "networkName": "workflows",
-          "arguments": {
-            "ENV_VAR1": "value1",
-            "ENV_VAR2": "value2"
-          }
+          "networkName": "workflows"
         },
         {
           "containerName": "amass",
           "dockerFolderName": "nginxImage",
           "ExposedPorts": {"8080/tcp": {}},
           "PortBindings": { "8080/tcp": [{ "HostPort": "8080" }]},
-          "networkName": "workflows",
-          "arguments": {
-            "ENV_VAR1": "value1",
-            "ENV_VAR2": "value2"
-          }
+          "networkName": "workflows"
         }
       ]
     },
@@ -48,10 +40,10 @@
           }
         ],
         "on": {
-          "NEXT": "running"
+          "NEXT": "complete"
         }
       },
-      "running": {
+      "complete": {
         "type": "final"
       }
     }
