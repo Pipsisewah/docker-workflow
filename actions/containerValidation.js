@@ -1,24 +1,21 @@
 const Docker = require('dockerode');
-const docker = new Docker();
 const {MongoClient: mongoClient} = require("mongodb");
 const axios = require('axios');
 
 const containerValidation = {}
 
-containerValidation.checkMongoDBReady = async () => {
+containerValidation.checkMongoDBReady = async (container) => {
     let attempts = 0;
     const maxAttempts = 10;
     const delay = 3000; // Delay in milliseconds between attempts
 
     const check = async () => {
-        const mongoClient = require('mongodb').MongoClient;
         try {
             const client = await mongoClient.connect(
                 'mongodb://localhost:27017',
                 { useNewUrlParser: true, useUnifiedTopology: true }
             );
             await client.close();
-            return;
         } catch (err) {
             attempts++;
             if (attempts >= maxAttempts) {
@@ -44,7 +41,7 @@ containerValidation.checkMongoDBReady = async () => {
     }
 
 // Call notifyMainService when job is completed
-    notifyMainService('container1', 'Job completed');
+    notifyMainService(container.containerName, 'checkMongoDBReady completed');
 };
 
 module.exports = containerValidation;

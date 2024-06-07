@@ -2,8 +2,6 @@ const Docker = require('dockerode');
 const {MongoClient: mongoClient} = require("mongodb");
 const axios = require("axios");
 const docker = new Docker();
-const fs = require('fs');
-const util = require('util');
 const path = require('path');
 const tar = require('tar-fs');
 
@@ -12,24 +10,14 @@ const dockerActions = {};
 async function getNetworkIdByName(networkName) {
     try {
         const networks = await docker.listNetworks();
-        const network = networks.find(net => net.Name === networkName);
-
-        if (network) {
-            console.log(`Network '${networkName}' exists with ID: ${network.Id}`);
-            return network.Id;
-        } else {
-            console.log(`Network '${networkName}' does not exist.`);
-            return null;
-        }
+        return networks.find(net => net.Name === networkName);
     } catch (err) {
         console.error('Error listing networks:', err);
     }
 }
 
 async function getNetworkId(networkName){
-    const netId = await getNetworkIdByName(networkName);
-    networkId = netId || null;
-    console.log(`Network Id: ${networkId}`);
+    let networkId = await getNetworkIdByName(networkName);
     if(!networkId) {
         try {
             const network = await docker.createNetwork({
@@ -47,7 +35,7 @@ async function getNetworkId(networkName){
 }
 
 const buildImage = async (docker, contextPath, imageName) => {
-    console.log(`Running BuildImage on ${imageName}`);
+    console.log(`Building Image ${imageName}`);
     const tarStream = tar.pack(contextPath);
     const stream = await docker.buildImage(tarStream,
         {
@@ -55,23 +43,19 @@ const buildImage = async (docker, contextPath, imageName) => {
             pull: true,
         }
     );
-    console.log(`${imageName} Image Should Be Built`);
-
     await new Promise((resolve, reject) => {
         docker.modem.followProgress(stream, (err, res) => (err ? reject(err) : resolve(res)));
     });
+    console.log(`${imageName} Image Built`);
 };
 
 const createAndStartContainer = async (docker, containerConfig) => {
-    console.log('Building image...');
-    console.log(`What is container ${containerConfig}`);
     const builtImageName = containerConfig.containerName + '-container'
     const contextPath = path.join(__dirname, '../images/', containerConfig.dockerFolderName);
     await buildImage(docker, contextPath, builtImageName);
     console.log(`Image built successfully ${builtImageName}`);
     console.log('Creating and starting container...');
     const containerNetworkId = await getNetworkId(containerConfig.networkName);
-    console.log(`Applying the following network ID: ${containerNetworkId}`);
     const container = await docker.createContainer({
         t: containerConfig.containerName,
         Image: builtImageName,
@@ -83,7 +67,6 @@ const createAndStartContainer = async (docker, containerConfig) => {
             ExposedPorts: containerConfig.ExposedPorts,
         },
     });
-
     await container.start();
     return container;
 };
