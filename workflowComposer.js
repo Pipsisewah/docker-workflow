@@ -19,11 +19,18 @@ workflowComposer.readWorkflow = async (workflowName) => {
     }
 }
 
+
+
 startContainer = async (context, event, { action }) => {
     const container = context.containers.find(container => container.containerName === action.container)
     await dockerActions.startContainer(container);
     await verifyContainerServiceStarted(container);
     console.log('Container Started');
+    mainService.send('NEXT');
+}
+
+createVolume = async (context, event, {action }) => {
+    await dockerActions.createVolume(action.Name);
     mainService.send('NEXT');
 }
 
@@ -43,6 +50,9 @@ verifyContainerServiceStarted = async (container) => {
 const actions = {
     startContainer: assign(async (context, event, meta) => {
         await startContainer(context, event, meta);
+    }),
+    createVolume:  assign(async (context, event, meta) => {
+        await createVolume(context, event, meta);
     }),
 };
 

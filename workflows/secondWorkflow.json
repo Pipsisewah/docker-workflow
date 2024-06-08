@@ -1,7 +1,7 @@
 {
   "stateMachine": {
     "id": "dockerScript",
-    "initial": "startMongoDB",
+    "initial": "setup",
     "context": {
       "containers": [
         {
@@ -16,11 +16,39 @@
           "dockerFolderName": "nginxImage",
           "ExposedPorts": {"8080/tcp": {}},
           "PortBindings": { "8080/tcp": [{ "HostPort": "8080" }]},
+          "Binds": ["shared:/data/shared"],
+          "networkName": "workflows"
+        },
+        {
+          "containerName": "simple-node-writer",
+          "dockerFolderName": "SimpleNodeWriter",
+          "ExposedPorts": {"8081/tcp": {}},
+          "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
+          "Binds": ["shared:/data/shared"],
+          "networkName": "workflows"
+        },
+        {
+          "containerName": "simple-node-reader",
+          "dockerFolderName": "SimpleNodeReader",
+          "ExposedPorts": {"8081/tcp": {}},
+          "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
+          "Binds": ["shared:/data/shared"],
           "networkName": "workflows"
         }
       ]
     },
     "states": {
+      "setup": {
+        "entry": [
+          {
+            "type": "createVolume",
+            "Name": "shared"
+          }
+        ],
+        "on": {
+          "NEXT": "startMongoDB"
+        }
+      },
       "startMongoDB": {
         "entry": [
           {
@@ -37,6 +65,28 @@
           {
             "type": "startContainer",
             "container": "amass"
+          }
+        ],
+        "on": {
+          "NEXT": "startNodeWriter"
+        }
+      },
+      "startNodeWriter": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "simple-node-writer"
+          }
+        ],
+        "on": {
+          "NEXT": "startNodeReader"
+        }
+      },
+      "startNodeReader": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "simple-node-reader"
           }
         ],
         "on": {

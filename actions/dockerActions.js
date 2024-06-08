@@ -65,6 +65,7 @@ const createAndStartContainer = async (docker, containerConfig) => {
             NetworkMode: containerConfig.networkName,
             PortBindings: containerConfig.PortBindings,
             ExposedPorts: containerConfig.ExposedPorts,
+            Binds: containerConfig.Binds,
         },
     });
     await container.start();
@@ -107,6 +108,11 @@ dockerActions.startContainer =  async (containerConfig) => {
     //notifyMainService(containerOptions.name, 'Job completed');
 };
 
+dockerActions.createVolume = async (name) => {
+    return docker.createVolume({
+        Name: name
+    })
+}
 
 
 module.exports = dockerActions;

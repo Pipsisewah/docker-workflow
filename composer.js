@@ -23,6 +23,6 @@ async function main() {
 main().then(() => {
     console.log('Main function completed!');
 }).catch(error => {
-    console.error('Error!, error');
+    console.error(`Error!, ${error}`);
 });
 
