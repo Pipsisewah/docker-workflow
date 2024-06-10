@@ -1,0 +1,101 @@
+{
+  "stateMachine": {
+    "id": "dockerScript",
+    "initial": "setup",
+    "context": {
+      "containers": [
+        {
+          "containerName": "mongodb",
+          "dockerFolderName": "mongoDBImage",
+          "ExposedPorts": {"27017/tcp": {}},
+          "PortBindings": { "27017/tcp": [{ "HostPort": "27017" }]},
+          "networkName": "workflows"
+        },
+        {
+          "containerName": "amass",
+          "dockerFolderName": "nginxImage",
+          "ExposedPorts": {"8080/tcp": {}},
+          "PortBindings": { "8080/tcp": [{ "HostPort": "8080" }]},
+          "Binds": ["shared:/data/shared"],
+          "networkName": "workflows"
+        },
+        {
+          "containerName": "simple-node-writer",
+          "dockerFolderName": "SimpleNodeWriter",
+          "ExposedPorts": {"8081/tcp": {}},
+          "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
+          "Binds": ["shared:/data/shared"],
+          "networkName": "workflows"
+        },
+        {
+          "containerName": "simple-node-reader",
+          "dockerFolderName": "SimpleNodeReader",
+          "ExposedPorts": {"8081/tcp": {}},
+          "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
+          "Binds": ["shared:/data/shared"],
+          "networkName": "workflows"
+        }
+      ]
+    },
+    "states": {
+      "setup": {
+        "entry": [
+          {
+            "type": "createVolume",
+            "Name": "shared"
+          }
+        ],
+        "on": {
+          "NEXT": "startMongoDB"
+        }
+      },
+      "startMongoDB": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "mongodb"
+          }
+        ],
+        "on": {
+          "NEXT": "startAmass"
+        }
+      },
+      "startAmass": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "amass"
+          }
+        ],
+        "on": {
+          "NEXT": "startNodeWriter"
+        }
+      },
+      "startNodeWriter": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "simple-node-writer"
+          }
+        ],
+        "on": {
+          "NEXT": "startNodeReader"
+        }
+      },
+      "startNodeReader": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "simple-node-reader"
+          }
+        ],
+        "on": {
+          "NEXT": "complete"
+        }
+      },
+      "complete": {
+        "type": "final"
+      }
+    }
+  }
+}
