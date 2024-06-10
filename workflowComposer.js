@@ -22,11 +22,29 @@ workflowComposer.readWorkflow = async (workflowName) => {
 
 
 startContainer = async (context, event, { action }) => {
-    const container = context.containers.find(container => container.containerName === action.container)
-    await dockerActions.startContainer(container);
-    await verifyContainerServiceStarted(container);
+    const containerInfo = context.containers.find(container => container.containerName === action.container)
+    const container = await dockerActions.startContainer(containerInfo, action.reuse);
+    await verifyContainerServiceStarted(containerInfo);
     console.log('Container Started');
-    mainService.send('NEXT');
+    if(action.static){
+        mainService.send('NEXT');
+    }else {
+        container.wait((err, data) => {
+            if (err) {
+                console.error(`Error waiting for the container ${container.containerName }:`, err);
+                return;
+            }
+            console.log(`Container ${containerInfo.containerName } has stopped:`, data);
+            container.remove((err, data) => {
+                if (err) {
+                    console.error(`Error removing the container ${containerInfo.containerName }:`, err);
+                    return;
+                }
+                console.log(`Container ${containerInfo.containerName } removed:`, data);
+                mainService.send('NEXT');
+            });
+        });
+    }
 }
 
 createVolume = async (context, event, {action }) => {
