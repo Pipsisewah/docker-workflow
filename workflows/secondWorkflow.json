@@ -30,8 +30,8 @@
         {
           "containerName": "simple-node-reader",
           "dockerFolderName": "SimpleNodeReader",
-          "ExposedPorts": {"8081/tcp": {}},
-          "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
+          "ExposedPorts": {"8082/tcp": {}},
+          "PortBindings": { "8082/tcp": [{ "HostPort": "8082" }]},
           "Binds": ["shared:/data/shared"],
           "networkName": "workflows"
         }
@@ -53,7 +53,9 @@
         "entry": [
           {
             "type": "startContainer",
-            "container": "mongodb"
+            "container": "mongodb",
+            "reuse": true,
+            "static": true
           }
         ],
         "on": {
@@ -64,7 +66,9 @@
         "entry": [
           {
             "type": "startContainer",
-            "container": "amass"
+            "container": "amass",
+            "reuse": false,
+            "static": false
           }
         ],
         "on": {
@@ -75,7 +79,9 @@
         "entry": [
           {
             "type": "startContainer",
-            "container": "simple-node-writer"
+            "container": "simple-node-writer",
+            "reuse": false,
+            "static": false
           }
         ],
         "on": {
@@ -86,7 +92,9 @@
         "entry": [
           {
             "type": "startContainer",
-            "container": "simple-node-reader"
+            "container": "simple-node-reader",
+            "reuse": false,
+            "static": true
           }
         ],
         "on": {
