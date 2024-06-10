@@ -42,7 +42,8 @@
         "entry": [
           {
             "type": "createVolume",
-            "Name": "shared"
+            "Name": "shared",
+            "persist": false
           }
         ],
         "on": {
@@ -94,7 +95,7 @@
             "type": "startContainer",
             "container": "simple-node-reader",
             "reuse": false,
-            "static": true
+            "static": false
           }
         ],
         "on": {

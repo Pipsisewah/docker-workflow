@@ -6,6 +6,8 @@ const containerValidation = require("./actions/containerValidation");
 const workflowComposer = {};
 const readFileAsync = util.promisify(fs.readFile);
 let mainService;
+const volumes = [];
+
 
 workflowComposer.readWorkflow = async (workflowName) => {
     const workflowPath = './workflows/' + workflowName + '.json';
@@ -48,7 +50,12 @@ startContainer = async (context, event, { action }) => {
 }
 
 createVolume = async (context, event, {action }) => {
-    await dockerActions.createVolume(action.Name);
+    const createdVolume  = await dockerActions.createVolume(action.Name);
+    volumes.push({
+        name: action.Name,
+        persist: action.persist,
+        volume: createdVolume
+    });
     mainService.send('NEXT');
 }
 
@@ -87,8 +94,22 @@ workflowComposer.createAndRunWorkflow = (workflowDefinition, expressServer) => {
     mainService = interpret(workflowMachine)
         .onTransition((state) => {})
         .onDone((context, event) => {
+            if(volumes.length > 0){
+                console.log('Cleaning up open volumes');
+                for (const attachedVolume of volumes){
+                    if(!attachedVolume.persist){
+                        try {
+                            attachedVolume.volume.remove();
+                            console.log(`Volume ${attachedVolume.name} delete`);
+                        }catch (err) {
+                            console.error(`Unable to delete volume! ${attachedVolume.name}  ${err}`);
+                        }
+                    }
+                }
+            }
             console.log('Operation Complete');
             expressServer.close()
+
         })
         .start();
 }
