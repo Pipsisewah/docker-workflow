@@ -23,7 +23,7 @@ workflowComposer.readWorkflow = async (workflowName) => {
 
 startContainer = async (context, event, { action }) => {
     const container = context.containers.find(container => container.containerName === action.container)
-    await dockerActions.startContainer(container);
+    await dockerActions.startContainer(container, action.reuse);
     await verifyContainerServiceStarted(container);
     console.log('Container Started');
     mainService.send('NEXT');

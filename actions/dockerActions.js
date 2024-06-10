@@ -72,44 +72,65 @@ const createAndStartContainer = async (docker, containerConfig) => {
     return container;
 };
 
-dockerActions.startContainer =  async (containerConfig) => {
-    let containerExists = false;
-    let containerRunning = false;
-    try{
-        const containerLookup = await docker.getContainer(containerConfig.containerName).inspect();
-        containerExists = true;
-        containerRunning = (containerLookup.State.Running === true);
-    } catch (err) {
-        // Do nothing, already set to false
-        console.log(err.message);
-    }
+dockerActions.startContainer =  async (containerConfig, reuse) => {
+    try {
+        let containerExists = false;
+        let containerRunning = false;
+        try {
+            const containerLookup = await docker.getContainer(containerConfig.containerName);
+            const containerInspection = await docker.getContainer(containerConfig.containerName).inspect();
+            containerExists = true;
+            containerRunning = (containerInspection.State.Running === true);
+            if(containerExists && !reuse){
+                if(containerRunning){
+                    console.log(`Stopping Container: ${containerConfig.containerName}`);
+                    await containerLookup.stop();
+                    console.log(`Container Stopped: ${containerConfig.containerName}`);
+                }
+                console.log(`Killing Container: ${containerConfig.containerName}`);
+                await containerLookup.remove();
+                console.log(`Container Destroyed: ${containerConfig.containerName}`);
+                containerExists = false;
+                containerRunning = false;
+            }
+        } catch (err) {
+            // Do nothing, already set to false
+            console.log(err.message);
+        }
 
-    if(!containerExists){
-        const container = await createAndStartContainer(docker, containerConfig);
-        console.log('Container started successfully');
-    } else if(!containerRunning){
-        console.log('Dockerfile Exists but is not running.  Starting!');
-        const containerLookup = await docker.getContainer(containerConfig.containerName);
-        await containerLookup.start();
-    }else {
-        console.log('Dockerfile already running!');
-    }
-    function notifyMainService(containerId, status) {
-        axios.post('http://localhost:3000/notify', { containerId, status })
-            .then(response => {
-                console.log('Notification sent successfully');
-            })
-            .catch(error => {
-                console.error('Error sending notification:', error);
-            });
-    }
+
+
+        if (!containerExists) {
+            const container = await createAndStartContainer(docker, containerConfig);
+            console.log('Container started successfully');
+        } else if (!containerRunning) {
+            console.log('Dockerfile Exists but is not running.  Starting!');
+            const containerLookup = await docker.getContainer(containerConfig.containerName);
+            await containerLookup.start();
+        } else {
+            console.log('Dockerfile already running!');
+        }
+
+        function notifyMainService(containerId, status) {
+            axios.post('http://localhost:3000/notify', {containerId, status})
+                .then(response => {
+                    console.log('Notification sent successfully');
+                })
+                .catch(error => {
+                    console.error('Error sending notification:', error);
+                });
+        }
 
 // Call notifyMainService when job is completed
-    //notifyMainService(containerOptions.name, 'Job completed');
+        //notifyMainService(containerOptions.name, 'Job completed');
+    } catch (err) {
+        console.error(`Failed to start container!  ${err.message}`)
+        throw new Error('Failed to start container!');
+    }
 };
 
 dockerActions.createVolume = async (name) => {
-    return docker.createVolume({
+    return await docker.createVolume({
         Name: name
     })
 }
