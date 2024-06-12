@@ -3,6 +3,7 @@ const util = require('util');
 const {Machine, interpret, assign} = require("xstate");
 const dockerActions = require("./actions/dockerActions");
 const containerValidation = require("./actions/containerValidation");
+const workflowUtils = require("./workflowUtils");
 const workflowComposer = {};
 const readFileAsync = util.promisify(fs.readFile);
 let mainService;
@@ -23,9 +24,13 @@ workflowComposer.readWorkflow = async (workflowName) => {
 
 
 
+
+
 startContainer = async (context, event, { action }) => {
-    const containerInfo = context.containers.find(container => container.containerName === action.container)
-    const container = await dockerActions.startContainer(containerInfo, action.reuse);
+    const containerInfo = workflowUtils.findContainerContext(context, action);
+    const networkInfo = workflowUtils.findNetworkContext(context, containerInfo.networkName)
+    console.info(`Network Info ${networkInfo}`);
+    const container = await dockerActions.startContainer(containerInfo, action.reuse, networkInfo);
     await verifyContainerServiceStarted(containerInfo);
     console.log('Container Started');
     if(action.static){

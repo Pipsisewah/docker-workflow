@@ -16,13 +16,18 @@ async function getNetworkIdByName(networkName) {
     }
 }
 
-async function getNetworkId(networkName){
-    let networkId = await getNetworkIdByName(networkName);
+async function getNetworkId(networkInfo){
+    let networkId = await getNetworkIdByName(networkInfo.networkName);
     if(!networkId) {
         try {
             const network = await docker.createNetwork({
-                Name: networkName,
-                Driver: 'bridge'
+                Name: networkInfo.networkName,
+                Driver: 'bridge',
+                IPAM: {
+                    Config: [{
+                        Subnet: networkInfo.subnetMask
+                    }]
+                }
             });
             console.log('Network created:', network.id);
             networkId = network.id;
@@ -49,13 +54,28 @@ const buildImage = async (docker, contextPath, imageName) => {
     console.log(`${imageName} Image Built`);
 };
 
-const createAndStartContainer = async (docker, containerConfig) => {
+const createAndStartContainer = async (docker, containerConfig, networkInfo) => {
     const builtImageName = containerConfig.containerName + '-container'
     const contextPath = path.join(__dirname, '../images/', containerConfig.dockerFolderName);
     await buildImage(docker, contextPath, builtImageName);
     console.log(`Image built successfully ${builtImageName}`);
     console.log('Creating and starting container...');
-    const containerNetworkId = await getNetworkId(containerConfig.networkName);
+    const containerNetworkId = await getNetworkId(networkInfo);
+    let NetworkingConfig = {};
+    if(containerConfig.Dns){
+        containerConfig.Dns = [containerConfig.Dns];
+    }
+    if(containerConfig.ipaddress){
+        NetworkingConfig = {
+         EndpointsConfig: {
+             [containerConfig.networkName]: {
+                 IPAMConfig: {
+                     IPv4Address: containerConfig.ipaddress
+                 }
+             }
+         }
+     }
+    }
     const container = await docker.createContainer({
         t: containerConfig.containerName,
         Image: builtImageName,
@@ -66,13 +86,16 @@ const createAndStartContainer = async (docker, containerConfig) => {
             PortBindings: containerConfig.PortBindings,
             ExposedPorts: containerConfig.ExposedPorts,
             Binds: containerConfig.Binds,
+            CapAdd: containerConfig.CapAdd,
+            Dns: containerConfig.Dns
         },
+        NetworkingConfig
     });
     await container.start();
     return container;
 };
 
-dockerActions.startContainer =  async (containerConfig, reuse) => {
+dockerActions.startContainer =  async (containerConfig, reuse, networkInfo) => {
     try {
         let containerExists = false;
         let containerRunning = false;
@@ -101,7 +124,7 @@ dockerActions.startContainer =  async (containerConfig, reuse) => {
 
 
         if (!containerExists) {
-            const container = await createAndStartContainer(docker, containerConfig);
+            const container = await createAndStartContainer(docker, containerConfig, networkInfo);
             console.log('Container started successfully');
         } else if (!containerRunning) {
             console.log('Dockerfile Exists but is not running.  Starting!');
