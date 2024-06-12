@@ -1,16 +1,25 @@
-# Use a lightweight base image
-FROM alpine:latest
+# Use an official Golang runtime as a parent image
+FROM golang:alpine
 
-RUN apk update && apk add --no-cache bash iputils bind-tools
+# Set the working directory inside the container
+WORKDIR /go/src/github.com/OWASP/Amass
 
-# Install necessary packages
-RUN apk update && apk add --no-cache bash iputils
+# Install dependencies
+RUN apk update && apk add --no-cache git
 
-# Copy the ping script into the container
-COPY ping_webserver.sh /usr/local/bin/ping_webserver.sh
+# Clone the Amass repository
+RUN git clone https://github.com/OWASP/Amass.git .
 
-# Make the script executable
-RUN chmod +x /usr/local/bin/ping_webserver.sh
+# Build the Amass binary
+RUN go get -v ./...
+RUN go install ./...
 
-# Set the entrypoint to run the ping script
-ENTRYPOINT ["/usr/local/bin/ping_webserver.sh"]
+# Create a directory to store the results
+RUN mkdir -p /amass/results
+
+# Set the domain to scan as an environment variable
+ENV TARGET_DOMAIN=slopesprogramming2.com
+
+# Set the entrypoint to the Amass binary with the domain to scan
+ENTRYPOINT ["/go/bin/amass", "enum", "-d", "slopesprogramming2.com", "-o", "/amass/results/amass_output.txt", "-tr", "172.24.0.2", "-v"]
+#ENTRYPOINT ["/usr/local/bin/ping_webserver.sh"]

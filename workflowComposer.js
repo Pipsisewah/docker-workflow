@@ -8,6 +8,7 @@ const workflowComposer = {};
 const readFileAsync = util.promisify(fs.readFile);
 let mainService;
 const volumes = [];
+const networks = [];
 
 
 workflowComposer.readWorkflow = async (workflowName) => {
@@ -29,7 +30,6 @@ workflowComposer.readWorkflow = async (workflowName) => {
 startContainer = async (context, event, { action }) => {
     const containerInfo = workflowUtils.findContainerContext(context, action);
     const networkInfo = workflowUtils.findNetworkContext(context, containerInfo.networkName)
-    console.info(`Network Info ${networkInfo}`);
     const container = await dockerActions.startContainer(containerInfo, action.reuse, networkInfo);
     await verifyContainerServiceStarted(containerInfo);
     console.log('Container Started');

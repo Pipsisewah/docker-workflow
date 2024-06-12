@@ -16,7 +16,7 @@ async function getNetworkIdByName(networkName) {
     }
 }
 
-async function getNetworkId(networkInfo){
+async function createNetwork(networkInfo){
     let networkId = await getNetworkIdByName(networkInfo.networkName);
     if(!networkId) {
         try {
@@ -60,7 +60,7 @@ const createAndStartContainer = async (docker, containerConfig, networkInfo) => 
     await buildImage(docker, contextPath, builtImageName);
     console.log(`Image built successfully ${builtImageName}`);
     console.log('Creating and starting container...');
-    const containerNetworkId = await getNetworkId(networkInfo);
+    await createNetwork(networkInfo);
     let NetworkingConfig = {};
     if(containerConfig.Dns){
         containerConfig.Dns = [containerConfig.Dns];

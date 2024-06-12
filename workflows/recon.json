@@ -6,10 +6,20 @@
       "networks": [
         {
           "networkName": "recon",
-          "subnetMask": "172.24.0.0/16"
+          "subnetMask": "172.24.0.0/16",
+          "reuse": false
         }
       ],
       "containers": [
+        {
+          "containerName": "pingserver",
+          "dockerFolderName": "pingServer",
+          "ExposedPorts": {"8081/tcp": {}},
+          "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
+          "networkName": "recon",
+          "ipaddress": "172.24.0.15",
+          "Dns": "172.24.0.2"
+        },
         {
           "containerName": "amass",
           "dockerFolderName": "amass",
@@ -58,6 +68,19 @@
           {
             "type": "startContainer",
             "container": "express",
+            "reuse": false,
+            "static": true
+          }
+        ],
+        "on": {
+          "NEXT": "pingServer"
+        }
+      },
+      "pingServer": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "pingserver",
             "reuse": false,
             "static": true
           }
