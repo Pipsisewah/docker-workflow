@@ -4,7 +4,7 @@ FROM alpine:latest
 RUN apk update && apk add --no-cache bash iputils bind-tools
 
 # Install necessary packages
-RUN apk update && apk add --no-cache bash iputils
+RUN apk update && apk add --no-cache bash iputils && apk add --no-cache nmap nmap-scripts
 
 # Copy the ping script into the container
 COPY ping_webserver.sh /usr/local/bin/ping_webserver.sh

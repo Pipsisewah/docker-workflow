@@ -20,6 +20,7 @@ async function createNetwork(networkInfo){
     let networkId = await getNetworkIdByName(networkInfo.networkName);
     if(!networkId) {
         try {
+            console.log(`Creating network: ${networkInfo.networkName}`);
             const network = await docker.createNetwork({
                 Name: networkInfo.networkName,
                 Driver: 'bridge',

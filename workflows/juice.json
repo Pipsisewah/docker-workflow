@@ -1,0 +1,125 @@
+{
+  "stateMachine": {
+    "id": "dockerScript",
+    "initial": "setup",
+    "context": {
+      "networks": [
+        {
+          "networkName": "juice",
+          "subnetMask": "172.24.0.0/16",
+          "reuse": false
+        }
+      ],
+      "containers": [
+        {
+          "containerName": "pingserver",
+          "dockerFolderName": "pingServer",
+          "ExposedPorts": {"8081/tcp": {}},
+          "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
+          "networkName": "juice",
+          "ipaddress": "172.24.0.15",
+          "Dns": "172.24.0.2",
+          "Binds": ["attacklogs:/data/attacklogs"]
+        },
+        {
+          "containerName": "juiceserver",
+          "dockerFolderName": "juiceshop",
+          "ExposedPorts": {"80/tcp": {}},
+          "PortBindings": { "3000/tcp": [{ "HostPort": "80" }]},
+          "networkName": "juice",
+          "ipaddress": "172.24.0.6",
+          "Dns": "172.24.0.2"
+        },
+        {
+          "containerName": "dns",
+          "dockerFolderName": "DNS",
+          "ExposedPorts": {"53/udp": {}},
+          "PortBindings": { "53/udp": [{ "HostPort": "53" }]},
+          "Binds": ["shared:/data/shared"],
+          "CapAdd": ["NET_ADMIN"],
+          "networkName": "juice",
+          "ipaddress": "172.24.0.2"
+        },
+        {
+          "containerName": "nucleiserver",
+          "dockerFolderName": "nuclei",
+          "ExposedPorts": {"8082/tcp": {}},
+          "PortBindings": { "8082/tcp": [{ "HostPort": "8082" }]},
+          "networkName": "juice",
+          "ipaddress": "172.24.0.8",
+          "Dns": "172.24.0.2",
+          "Binds": ["attacklogs:/data/attacklogs"]
+        }
+      ]
+    },
+    "states": {
+      "setup": {
+        "entry": [
+          {
+            "type": "createVolume",
+            "Name": "attacklogs",
+            "persist": true
+          }
+        ],
+        "on": {
+          "NEXT": "dns"
+        }
+      },
+      "dns": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "dns",
+            "reuse": false,
+            "static": true
+          }
+        ],
+        "on": {
+          "NEXT": "juice"
+        }
+      },
+      "juice": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "juiceserver",
+            "reuse": false,
+            "static": true
+          }
+        ],
+        "on": {
+          "NEXT": "pingServer"
+        }
+      },
+      "pingServer": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "pingserver",
+            "reuse": false,
+            "static": true
+          }
+        ],
+        "on": {
+          "NEXT": "nuceli"
+        }
+      },
+      "nuceli": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "nucleiserver",
+            "reuse": false,
+            "static": true
+          }
+        ],
+        "on": {
+          "NEXT": "complete"
+        }
+      },
+      "complete": {
+        "type": "final"
+      }
+    }
+  }
+}

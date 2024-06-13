@@ -1,15 +1,17 @@
 #!/bin/sh
 
 # Define the web server hostname
-WEB_SERVER_HOSTNAME="slopesprogramming2.com"
+WEB_SERVER_HOSTNAME="slopesjuiceshop.com"
 
-nslookup slopesprogramming2.com 127.0.0.1
-nslookup sub.slopesprogramming2.com 127.0.0.1
-nslookup www.slopesprogramming2.com 127.0.0.1
+nslookup slopesjuiceshop.com
+nslookup sub.slopesjuiceshop.com
+nslookup www.slopesjuiceshop.com
 
-dig slopesprogramming2.com AAAA
-dig sub.slopesprogramming2.com AAAA
-dig www.slopesprogramming2.com AAAA
+dig slopesjuiceshop.com AAAA
+dig sub.slopesjuiceshop.com AAAA
+dig www.slopesjuiceshop.com AAAA
+
+nmap -p-  -oG - slopesjuiceshop.com | grep '/open/'
 
 # Ping the web server
 ping -c 4 $WEB_SERVER_HOSTNAME

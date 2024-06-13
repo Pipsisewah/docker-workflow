@@ -3,7 +3,7 @@ const express = require('./api/index');
 
 async function main() {
     const expressServer = express.start(3000);
-    const workflowDefinition = await workflowComposer.readWorkflow('recon');
+    const workflowDefinition = await workflowComposer.readWorkflow('juice');
     workflowComposer.createAndRunWorkflow(workflowDefinition, expressServer);
 }
 
