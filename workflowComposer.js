@@ -27,13 +27,11 @@ workflowComposer.readWorkflow = async (workflowName) => {
 
 
 
-startContainer = async (context, event, { action }) => {
-    const containerInfo = workflowUtils.findContainerContext(context, action);
-    const networkInfo = workflowUtils.findNetworkContext(context, containerInfo.networkName)
-    const container = await dockerActions.startContainer(containerInfo, action.reuse, networkInfo);
-    await verifyContainerServiceStarted(containerInfo);
+createContainer = async (context, event, { action }) => {
+    const container = await dockerActions.createContainer(action);
+    await verifyContainerServiceStarted(action);
     console.log('Container Started');
-    if(action.static){
+    if(!action.await){
         mainService.send('NEXT');
     }else {
         container.wait((err, data) => {
@@ -41,17 +39,27 @@ startContainer = async (context, event, { action }) => {
                 console.error(`Error waiting for the container ${container.containerName }:`, err);
                 return;
             }
-            console.log(`Container ${containerInfo.containerName } has stopped:`, data);
+            console.log(`Container ${action.containerName } has stopped:`, data);
             container.remove((err, data) => {
                 if (err) {
-                    console.error(`Error removing the container ${containerInfo.containerName }:`, err);
+                    console.error(`Error removing the container ${action.containerName }:`, err);
                     return;
                 }
-                console.log(`Container ${containerInfo.containerName } removed:`, data);
+                console.log(`Container ${action.containerName } removed:`, data);
                 mainService.send('NEXT');
             });
         });
     }
+}
+
+
+
+createNetwork = async (context, event, {action}) => {
+    if(! await dockerActions.doesNetworkExist(action.networkName)) {
+        await dockerActions.createNetwork(action);
+    }
+    console.log('Calling Next');
+    mainService.send('NEXT');
 }
 
 createVolume = async (context, event, {action }) => {
@@ -78,11 +86,14 @@ verifyContainerServiceStarted = async (container) => {
 }
 
 const actions = {
-    startContainer: assign(async (context, event, meta) => {
-        await startContainer(context, event, meta);
+    createContainer: assign(async (context, event, meta) => {
+        await createContainer(context, event, meta);
     }),
     createVolume:  assign(async (context, event, meta) => {
         await createVolume(context, event, meta);
+    }),
+    createNetwork:  assign(async (context, event, meta) => {
+        await createNetwork(context, event, meta);
     }),
 };
 
