@@ -3,7 +3,6 @@ const util = require('util');
 const {Machine, interpret, assign} = require("xstate");
 const dockerActions = require("./actions/dockerActions");
 const containerValidation = require("./actions/containerValidation");
-const workflowUtils = require("./workflowUtils");
 const workflowComposer = {};
 const readFileAsync = util.promisify(fs.readFile);
 let mainService;
@@ -24,11 +23,8 @@ workflowComposer.readWorkflow = async (workflowName) => {
 }
 
 
-
-
-
 createContainer = async (context, event, { action }) => {
-    const container = await dockerActions.createContainer(action);
+    const container = await dockerActions.containerActions.createContainer(action);
     await verifyContainerServiceStarted(action);
     console.log('Container Started');
     if(!action.await){
@@ -55,15 +51,15 @@ createContainer = async (context, event, { action }) => {
 
 
 createNetwork = async (context, event, {action}) => {
-    if(! await dockerActions.doesNetworkExist(action.networkName)) {
-        await dockerActions.createNetwork(action);
+    if(! await dockerActions.networkActions.doesNetworkExist(action.networkName)) {
+        await dockerActions.networkActions.createNetwork(action);
     }
     console.log('Calling Next');
     mainService.send('NEXT');
 }
 
 createVolume = async (context, event, {action }) => {
-    const createdVolume  = await dockerActions.createVolume(action.Name);
+    const createdVolume  = await dockerActions.volumeActions.createVolume(action.Name);
     volumes.push({
         name: action.Name,
         persist: action.persist,

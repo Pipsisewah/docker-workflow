@@ -1,0 +1,3 @@
+CREATE EXTENSION pg_trgm;
+CREATE EXTENSION btree_gin;
+ALTER EXTENSION pg_trgm SET SCHEMA pg_catalog;

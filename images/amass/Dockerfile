@@ -1,25 +1,16 @@
-# Use an official Golang runtime as a parent image
-FROM golang:alpine
+# Use the caffix/amass image as a base
+FROM caffix/amass:latest
 
-# Set the working directory inside the container
-WORKDIR /go/src/github.com/OWASP/Amass
+USER root
 
-# Install dependencies
-RUN apk update && apk add --no-cache git
+# Set the working directory
+WORKDIR /app
 
-# Clone the Amass repository
-RUN git clone https://github.com/OWASP/Amass.git .
+# Copy the minimal configuration file into the container
+COPY config.yaml /app/config.yaml
 
-# Build the Amass binary
-RUN go get -v ./...
-RUN go install ./...
+# Create output and logs directories
+RUN mkdir -p /app/output /app/logs
 
-# Create a directory to store the results
-RUN mkdir -p /amass/results
-
-# Set the domain to scan as an environment variable
-ENV TARGET_DOMAIN=slopesprogramming2.com
-
-# Set the entrypoint to the Amass binary with the domain to scan
-ENTRYPOINT ["/go/bin/amass", "enum", "-d", "slopesprogramming2.com", "-o", "/amass/results/amass_output.txt", "-tr", "172.24.0.2", "-v"]
-#ENTRYPOINT ["/usr/local/bin/ping_webserver.sh"]
+# Use the configuration file when running Amass
+ENTRYPOINT ["amass", "enum", "-config", "/app/config.yaml", "-log", "/data/scanlogs/amass.txt"]
