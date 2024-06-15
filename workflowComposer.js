@@ -24,6 +24,7 @@ workflowComposer.readWorkflow = async (workflowName) => {
 
 
 createContainer = async (context, event, { action }) => {
+    action.Env = context;
     const container = await dockerActions.containerActions.createContainer(action);
     await verifyContainerServiceStarted(action);
     console.log('Container Started');
@@ -69,14 +70,16 @@ createVolume = async (context, event, {action }) => {
 }
 
 verifyContainerServiceStarted = async (container) => {
-    const portKey = Object.keys(container.ExposedPorts)[0];
-    const port = portKey.split('/')[0];
-    if(port === "27017") {
-        console.log('Checking if MongoDB is ready');
-        await containerValidation.checkMongoDBReady(container);
-    }
-    if(port === "8080"){
-        console.log('Would attempt to verify via HTTP');
+    if(container.ExposedPorts) {
+        const portKey = Object.keys(container.ExposedPorts)[0];
+        const port = portKey.split('/')[0];
+        if (port === "27017") {
+            console.log('Checking if MongoDB is ready');
+            await containerValidation.checkMongoDBReady(container);
+        }
+        if (port === "8080") {
+            console.log('Would attempt to verify via HTTP');
+        }
     }
 
 }
@@ -95,7 +98,8 @@ const actions = {
 
 const services = {};
 
-workflowComposer.createAndRunWorkflow = (workflowDefinition, expressServer) => {
+workflowComposer.createAndRunWorkflow = (workflowDefinition, expressServer, envVariables) => {
+    workflowDefinition.context = envVariables;
     const workflowMachine = Machine(
         workflowDefinition,
         {
@@ -103,6 +107,8 @@ workflowComposer.createAndRunWorkflow = (workflowDefinition, expressServer) => {
             services
         }
     );
+    console.log(`apexDomain ${JSON.stringify(envVariables)}`);
+    console.log(`workflowMachine.context ${JSON.stringify(workflowMachine.context)}`);
     mainService = interpret(workflowMachine)
         .onTransition((state) => {})
         .onDone((context, event) => {

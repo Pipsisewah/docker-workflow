@@ -1,8 +1,11 @@
 scope:
     domains: # domain names to be in scope
-        - slopesjuicebox.com
+        - slopesjuiceshop.com
     ports: # ports to be used when actively reaching a service
         - 443
+output:
+    directory: /data/scanlogs/
+    format: json
 options:
     resolvers:
         - 172.22.0.2
@@ -10,4 +13,4 @@ options:
         enabled: false
     alterations: # specific option to use when brute forcing is needed
         enabled: false
-    database: "postgres://amass_user:amass_password@172.22.0.4:5432/amass?sslmode=disable" # databases URI to be used when adding entries
+    #database: "postgres://amass_user:amass_password@172.22.0.4:5432/amass?sslmode=disable" # databases URI to be used when adding entries

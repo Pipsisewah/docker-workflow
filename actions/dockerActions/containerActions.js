@@ -27,6 +27,10 @@ const buildImage = async (docker, contextPath, imageName) => {
     console.log(`${imageName} Image Built`);
 };
 
+function transformEnvObjectToArray(envObject) {
+    return Object.entries(envObject).map(([key, value]) => `${key}=${value}`);
+}
+
 const createAndStartContainer = async (docker, containerConfig) => {
     const builtImageName = containerConfig.containerName + '-container'
     console.log(`Building and starting a new container ${builtImageName}`);
@@ -49,18 +53,21 @@ const createAndStartContainer = async (docker, containerConfig) => {
             }
         }
     }
+
+    const env = transformEnvObjectToArray(containerConfig.Env);
     const container = await docker.createContainer({
         t: containerConfig.containerName,
         Image: builtImageName,
         name: containerConfig.containerName,
         Tty: true,
+        Env: env,
         HostConfig: {
             NetworkMode: containerConfig.networkName,
             PortBindings: containerConfig.PortBindings,
             ExposedPorts: containerConfig.ExposedPorts,
             Binds: containerConfig.Binds,
             CapAdd: containerConfig.CapAdd,
-            Dns: containerConfig.Dns
+            Dns: containerConfig.Dns,
         },
         NetworkingConfig
     });

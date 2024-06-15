@@ -46,27 +46,27 @@
           }
         ],
         "on": {
-          "NEXT": "postgres"
+          "NEXT": "sandbox"
         }
       },
-      "postgres": {
+      "sandbox": {
         "entry": [
           {
             "type": "createContainer",
-            "reuse": false,
+            "reuse": true,
             "await": false,
-            "containerName": "postgres",
-            "dockerFolderName": "postgres",
-            "ExposedPorts": {"5432/tcp": {}},
-            "PortBindings": { "5432/tcp": [{ "HostPort": "5432" }]},
+            "containerName": "sandbox",
+            "dockerFolderName": "sandbox",
+            "ExposedPorts": {"8081/tcp": {}},
+            "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
             "networkName": "scannetwork",
-            "ipaddress": "172.22.0.4",
+            "ipaddress": "172.22.0.16",
             "Dns": "172.22.0.2",
             "Binds": ["scanlogs:/data/scanlogs"]
           }
         ],
         "on": {
-          "NEXT": "amass"
+          "NEXT": "complete"
         }
       },
       "amass": {
