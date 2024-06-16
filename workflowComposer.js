@@ -3,11 +3,12 @@ const util = require('util');
 const {Machine, interpret, assign} = require("xstate");
 const dockerActions = require("./actions/dockerActions");
 const containerValidation = require("./actions/containerValidation");
+const {volumeActions, networkActions} = require("./actions/dockerActions");
 const workflowComposer = {};
 const readFileAsync = util.promisify(fs.readFile);
 let mainService;
-const volumes = [];
-const networks = [];
+
+
 
 
 workflowComposer.readWorkflow = async (workflowName) => {
@@ -52,20 +53,17 @@ createContainer = async (context, event, { action }) => {
 
 
 createNetwork = async (context, event, {action}) => {
-    if(! await dockerActions.networkActions.doesNetworkExist(action.networkName)) {
+    const networkInfo = await dockerActions.networkActions.getActiveNetworkInfo(action.networkName);
+    if(!networkInfo) {
         await dockerActions.networkActions.createNetwork(action);
+    }else{
+        dockerActions.networkActions.trackNetwork(action, networkInfo);
     }
-    console.log('Calling Next');
     mainService.send('NEXT');
 }
 
 createVolume = async (context, event, {action }) => {
-    const createdVolume  = await dockerActions.volumeActions.createVolume(action.Name);
-    volumes.push({
-        name: action.Name,
-        persist: action.persist,
-        volume: createdVolume
-    });
+    await dockerActions.volumeActions.createVolume(action);
     mainService.send('NEXT');
 }
 
@@ -112,19 +110,9 @@ workflowComposer.createAndRunWorkflow = (workflowDefinition, expressServer, envV
     mainService = interpret(workflowMachine)
         .onTransition((state) => {})
         .onDone((context, event) => {
-            if(volumes.length > 0){
-                console.log('Cleaning up open volumes');
-                for (const attachedVolume of volumes){
-                    if(!attachedVolume.persist){
-                        try {
-                            attachedVolume.volume.remove();
-                            console.log(`Volume ${attachedVolume.name} delete`);
-                        }catch (err) {
-                            console.error(`Unable to delete volume! ${attachedVolume.name}  ${err}`);
-                        }
-                    }
-                }
-            }
+            console.log('Running Cleanup');
+            volumeActions.cleanup();
+            networkActions.cleanup();
             console.log('Operation Complete');
             expressServer.close()
 

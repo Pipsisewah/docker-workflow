@@ -1,16 +1,28 @@
 const Docker = require("dockerode");
 const docker = new Docker();
-
+const networks = [];
 const networkActions = {};
 
-networkActions.doesNetworkExist = async (networkName) => {
+
+networkActions.getActiveNetworkInfo = async (networkName) => {
     try {
         const networks = await docker.listNetworks();
-        return networks.find(net => net.Name === networkName);
+        const network = networks.find(net => net.Name === networkName);
+        return docker.getNetwork(network.Id);
     } catch (err) {
         console.error('Error listing networks:', err);
     }
+    return null;
 }
+
+networkActions.trackNetwork = (networkInfo, dockerNetwork) => {
+    networks.push({
+        name: networkInfo.networkName,
+        persist: networkInfo.persist,
+        networkInfo: dockerNetwork
+    });
+}
+
 
 networkActions.createNetwork = async (networkInfo) => {
     try {
@@ -25,9 +37,26 @@ networkActions.createNetwork = async (networkInfo) => {
             }
         });
         console.log('Network created:', network.id);
+       networkActions.trackNetwork(networkInfo, network);
     } catch (err) {
         console.error('Error creating network:', err);
+    }
+}
 
+networkActions.cleanup = () => {
+    if(networks.length > 0){
+        console.log('Cleaning up networks');
+        for (const network of networks){
+            if(!network.persist){
+                try {
+                    const networkToDelete = docker.getNetwork(network.networkInfo.id);
+                    networkToDelete.remove();
+                    console.log(`Network ${network.Name} deleted`);
+                }catch (err) {
+                    console.error(`Unable to delete Network! ${network.Name}  ${err}`);
+                }
+            }
+        }
     }
 }
 

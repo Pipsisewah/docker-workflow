@@ -22,7 +22,18 @@ const buildImage = async (docker, contextPath, imageName) => {
         process.stdout.write(log);
     });
     await new Promise((resolve, reject) => {
-        docker.modem.followProgress(stream, (err, res) => (err ? reject(err) : resolve(res)));
+        docker.modem.followProgress(stream, onFinished, onProgress);
+
+        function onFinished(err, output) {
+            console.log(`${imageName} build has finished`);
+            resolve();
+            //output is an array with output json parsed objects
+            //...
+        }
+        function onProgress(event) {
+            console.log(`${imageName} progress: ${JSON.stringify(event)}`);
+        }
+
     });
     console.log(`${imageName} Image Built`);
 };
