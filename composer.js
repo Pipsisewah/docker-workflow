@@ -2,8 +2,7 @@ const express = require('./api/index');
 const Workflow = require('./Workflow');
 
 async function main() {
-    const workflowName = 'recon';
-    const apexDomain = "slopesprogramming.com";
+    const apexDomain = "slopesjuiceshop.com";
     const expressServer = express.start(3000);
     const debug = true;
     const mainWorkflow = new Workflow({workflowName, envVariables: {apexDomain}, debug}, expressServer);
