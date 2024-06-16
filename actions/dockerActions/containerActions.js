@@ -4,7 +4,43 @@ const axios = require("axios");
 const Docker = require("dockerode");
 const docker = new Docker();
 const containerActions = {};
+const containers = [];
 
+containerActions.cleanup = async () => {
+
+        // List all containers, including stopped ones
+        const allContainers = await docker.listContainers({ all: true });
+
+        // Iterate over the containers array
+        for (const containerObj of containers) {
+            try {
+                const containerName = containerObj.containerName;
+
+                // Find the container by name
+                const containerInfo = allContainers.find(container =>
+                    container.Names.some(name => name === `/${containerName}`)
+                );
+
+                if (!containerInfo) {
+                    console.log(`Container with name ${containerName} not found.`);
+                    continue;
+                }
+
+                // Get the container object
+                const container = docker.getContainer(containerInfo.Id);
+
+                // Stop the container
+                await container.stop();
+                console.log(`Container ${containerName} stopped successfully.`);
+            } catch (err) {
+                    console.error('Error:', err.message);
+            }
+        }
+}
+
+containerActions.trackContainer = (container) => {
+    containers.push(container);
+}
 
 const buildImage = async (docker, contextPath, imageName) => {
     console.log(`Building Image ${imageName}`);
@@ -124,6 +160,7 @@ containerActions.createContainer =  async (containerConfig) => {
         } else {
             console.log('Dockerfile already running!');
         }
+        containerActions.trackContainer(containerConfig);
 
         function notifyMainService(containerId, status) {
             axios.post('http://localhost:3000/notify', {containerId, status})

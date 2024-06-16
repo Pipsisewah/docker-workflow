@@ -14,7 +14,7 @@ volumeActions.createVolume = async (action) => {
     });
 }
 
-volumeActions.cleanup = () => {
+volumeActions.cleanup = async () => {
     if(volumes.length > 0){
         console.log('Cleaning up open volumes');
         for (const attachedVolume of volumes){

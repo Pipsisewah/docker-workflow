@@ -43,7 +43,7 @@ networkActions.createNetwork = async (networkInfo) => {
     }
 }
 
-networkActions.cleanup = () => {
+networkActions.cleanup = async () => {
     if(networks.length > 0){
         console.log('Cleaning up networks');
         for (const network of networks){
@@ -51,7 +51,7 @@ networkActions.cleanup = () => {
                 try {
                     const networkToDelete = docker.getNetwork(network.networkInfo.id);
                     networkToDelete.remove();
-                    console.log(`Network ${network.Name} deleted`);
+                    console.log(`Network ${network.name} deleted`);
                 }catch (err) {
                     console.error(`Unable to delete Network! ${network.Name}  ${err}`);
                 }

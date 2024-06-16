@@ -3,7 +3,7 @@ const util = require('util');
 const {Machine, interpret, assign} = require("xstate");
 const dockerActions = require("./actions/dockerActions");
 const containerValidation = require("./actions/containerValidation");
-const {volumeActions, networkActions} = require("./actions/dockerActions");
+const {volumeActions, networkActions, containerActions} = require("./actions/dockerActions");
 const workflowComposer = {};
 const readFileAsync = util.promisify(fs.readFile);
 let mainService;
@@ -111,8 +111,15 @@ workflowComposer.createAndRunWorkflow = (workflowDefinition, expressServer, envV
         .onTransition((state) => {})
         .onDone((context, event) => {
             console.log('Running Cleanup');
-            volumeActions.cleanup();
-            networkActions.cleanup();
+            containerActions.cleanup().then(result  => {
+                return volumeActions.cleanup().then(result => {
+                    return networkActions.cleanup().catch(error => {
+                        console.error(`Failed to completely cleanup: ${error}`)
+                    });
+                })
+            })
+
+
             console.log('Operation Complete');
             expressServer.close()
 
