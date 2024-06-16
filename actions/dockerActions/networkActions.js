@@ -6,8 +6,6 @@ const networkActions = {};
 const getAllContainersUsingNetwork = async (networkName, containers) => {
     const containersUsingNetwork = [];
     for (const container of containers) {
-        console.log(JSON.stringify(container));
-        console.log(`container.networkName === networkName ${container.networkName} ${networkName}`)
         if(container.networkName === networkName){
             containersUsingNetwork.push(container);
         }
@@ -60,7 +58,6 @@ networkActions.cleanup = async (containers) => {
         for (const network of networks){
             if(!network.persist){
                 try {
-                    console.log(`network.networkInfo.id ${network.networkInfo.id}`);
                     const containersUsingNetwork = await getAllContainersUsingNetwork(network.name, containers);
                     if(containersUsingNetwork.length > 0){
                         console.log(`Unable to delete network ${network.name}.  A reusable container requires this network to sustain`);

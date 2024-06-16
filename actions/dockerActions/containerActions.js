@@ -1,6 +1,5 @@
 const tar = require("tar-fs");
 const path = require("path");
-const axios = require("axios");
 const Docker = require("dockerode");
 const docker = new Docker();
 const containerActions = {};
@@ -9,47 +8,54 @@ const containers = [];
 containerActions.getContainers = () => {
     return containers;
 }
-containerActions.cleanup = async () => {
 
-        // List all containers, including stopped ones
-        const allContainers = await docker.listContainers({ all: true });
+const getContainer = async(containerName) => {
+    const allContainers = await docker.listContainers({ all: true });
+    const containerInfo = allContainers.find(container =>
+        container.Names.some(name => name === `/${containerName}`)
+    );
+    const container = docker.getContainer(containerInfo.Id);
+    if(!container){
+        throw new Error(`Container with name ${containerInfo.containerName} not found.`);
+    }
+    return container;
+}
 
-        // Iterate over the containers array
-        for (const containerObj of containers) {
-            const containerName = containerObj.containerName;
+const stopContainer = async(container, containerInfo) => {
+    try {
+        await container.stop();
+        console.log(`Container ${containerInfo.containerName} stopped successfully.`);
+    } catch (err) {
+        console.error(`Error Stopping Container ${containerInfo.containerName}:`, err.message);
+    }
+}
 
-            // Find the container by name
-            const containerInfo = allContainers.find(container =>
-                container.Names.some(name => name === `/${containerName}`)
-            );
-
-            if (!containerInfo) {
-                console.log(`Container with name ${containerName} not found.`);
-                continue;
-            }
-
-            const container = docker.getContainer(containerInfo.Id);
-            try {
-                // Stop the container
-                await container.stop();
-                console.log(`Container ${containerName} stopped successfully.`);
-            } catch (err) {
-                console.error(`Error Stopping Container ${containerName}:`, err.message);
-            }
-            try {
-                if (!containerObj.reuse) {
-                    container.remove((err, data) => {
-                        if (err) {
-                            console.error(`Error removing the container ${containerName}:`, err);
-                            return;
-                        }
-                        console.log(`Container ${containerName} removed:`, data);
-                    });
+const removeContainer = async(container, containerInfo) => {
+    try {
+        if (!containerInfo.reuse) {
+            container.remove((err, data) => {
+                if (err) {
+                    console.error(`Error removing the container ${containerInfo.containerName}:`, err);
+                    return;
                 }
-            }catch (err) {
-                console.error(`Error Removing Container ${containerName}:`, err.message);
-            }
+                console.log(`Container ${containerInfo.containerName} deleted`);
+            });
+        }
+    }catch (err) {
+        console.error(`Error Removing Container ${containerInfo.containerName}:`, err.message);
+    }
+}
 
+
+containerActions.cleanup = async () => {
+        for (const containerObj of containers) {
+            try {
+                const container = await getContainer(containerObj.containerName);
+                await stopContainer(container, containerObj);
+                await removeContainer(container, containerObj);
+            } catch (err) {
+                console.error(err);
+            }
         }
 }
 
@@ -57,49 +63,46 @@ containerActions.trackContainer = (container) => {
     containers.push(container);
 }
 
-const buildImage = async (docker, contextPath, imageName) => {
-    console.log(`Building Image ${imageName}`);
+const attachDebugLogsToContainer = async(containerBuildStream) => {
+    containerBuildStream.pipe(process.stdout, { end: true });
+    containerBuildStream.on('data', (data) => {
+            const log = data.toString('utf8');
+            process.stdout.write(log);
+        });
+}
+const buildImage = async (docker, containerConfig) => {
+    console.log(`Building Image ${containerConfig.containerName}`);
+    const contextPath = path.join(__dirname, '../../images/', containerConfig.containerName);
     const tarStream = tar.pack(contextPath);
     const stream = await docker.buildImage(tarStream,
         {
-            t: imageName, // Tag your image
+            t: containerConfig.containerName, // Tag your image
             pull: true,
         }
     );
-    stream.pipe(process.stdout, { end: true });
-
-    stream.on('data', (data) => {
-        const log = data.toString('utf8');
-        process.stdout.write(log);
-    });
+     if(process.env.debug) {
+        await attachDebugLogsToContainer(stream);
+     }
     await new Promise((resolve, reject) => {
-        docker.modem.followProgress(stream, onFinished, onProgress);
-
         function onFinished(err, output) {
-            console.log(`${imageName} build has finished`);
+            console.log(`${containerConfig.containerName} build has finished`);
             resolve();
-            //output is an array with output json parsed objects
-            //...
         }
         function onProgress(event) {
-            console.log(`${imageName} progress: ${JSON.stringify(event)}`);
+            if(process.env.debug) {
+                console.log(`${containerConfig.containerName} progress: ${JSON.stringify(event)}`);
+            }
         }
-
+        docker.modem.followProgress(stream, onFinished, onProgress);
     });
-    console.log(`${imageName} Image Built`);
+    console.log(`${containerConfig.containerName} Image Built`);
 };
 
 function transformEnvObjectToArray(envObject) {
     return Object.entries(envObject).map(([key, value]) => `${key}=${value}`);
 }
 
-const createAndStartContainer = async (docker, containerConfig) => {
-    const builtImageName = containerConfig.containerName + '-container'
-    console.log(`Building and starting a new container ${builtImageName}`);
-    const contextPath = path.join(__dirname, '../../images/', containerConfig.dockerFolderName);
-    await buildImage(docker, contextPath, builtImageName);
-    console.log(`Image built successfully ${builtImageName}`);
-    console.log('Creating and starting container...');
+const configureContainer = (containerConfig) => {
     let NetworkingConfig = {};
     if(containerConfig.Dns){
         containerConfig.Dns = [containerConfig.Dns];
@@ -115,11 +118,10 @@ const createAndStartContainer = async (docker, containerConfig) => {
             }
         }
     }
-
     const env = transformEnvObjectToArray(containerConfig.Env);
-    const container = await docker.createContainer({
+    return {
         t: containerConfig.containerName,
-        Image: builtImageName,
+        Image: containerConfig.containerName,
         name: containerConfig.containerName,
         Tty: true,
         Env: env,
@@ -132,13 +134,15 @@ const createAndStartContainer = async (docker, containerConfig) => {
             Dns: containerConfig.Dns,
         },
         NetworkingConfig
-    });
+    }
+}
+const createAndStartContainer = async (docker, containerConfig) => {
+    await buildImage(docker, containerConfig);
+    const container = await docker.createContainer(configureContainer(containerConfig));
     await container.start();
-    return container;
 };
 
-containerActions.createContainer =  async (containerConfig) => {
-    try {
+const removeIfNotReuse = async (containerConfig) => {
         let containerExists = false;
         let containerRunning = false;
         try {
@@ -162,9 +166,12 @@ containerActions.createContainer =  async (containerConfig) => {
             // Do nothing, already set to false
             console.log(err.message);
         }
+        return {containerExists, containerRunning};
+}
 
-
-
+containerActions.startContainer =  async (containerConfig) => {
+    try {
+        const {containerExists, containerRunning} = await removeIfNotReuse(containerConfig);
         if (!containerExists) {
             await createAndStartContainer(docker, containerConfig);
             console.log('Container started successfully');
@@ -176,19 +183,6 @@ containerActions.createContainer =  async (containerConfig) => {
             console.log('Dockerfile already running!');
         }
         containerActions.trackContainer(containerConfig);
-
-        function notifyMainService(containerId, status) {
-            axios.post('http://localhost:3000/notify', {containerId, status})
-                .then(response => {
-                    console.log('Notification sent successfully');
-                })
-                .catch(error => {
-                    console.error('Error sending notification:', error);
-                });
-        }
-
-// Call notifyMainService when job is completed
-        //notifyMainService(containerOptions.name, 'Job completed');
     } catch (err) {
         console.error(`Failed to start container!  ${err.message}`)
         throw new Error('Failed to start container!');
