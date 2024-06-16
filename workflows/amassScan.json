@@ -33,7 +33,7 @@
         "entry": [
           {
             "type": "createContainer",
-            "reuse": false,
+            "reuse": true,
             "containerName": "dns",
             "dockerFolderName": "DNS",
             "ExposedPorts": {"53/udp": {}},

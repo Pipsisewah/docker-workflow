@@ -3,6 +3,17 @@ const docker = new Docker();
 const networks = [];
 const networkActions = {};
 
+const getAllContainersUsingNetwork = async (networkName, containers) => {
+    const containersUsingNetwork = [];
+    for (const container of containers) {
+        console.log(JSON.stringify(container));
+        console.log(`container.networkName === networkName ${container.networkName} ${networkName}`)
+        if(container.networkName === networkName){
+            containersUsingNetwork.push(container);
+        }
+    }
+    return containersUsingNetwork;
+}
 
 networkActions.getActiveNetworkInfo = async (networkName) => {
     try {
@@ -43,17 +54,23 @@ networkActions.createNetwork = async (networkInfo) => {
     }
 }
 
-networkActions.cleanup = async () => {
+networkActions.cleanup = async (containers) => {
     if(networks.length > 0){
         console.log('Cleaning up networks');
         for (const network of networks){
             if(!network.persist){
                 try {
+                    console.log(`network.networkInfo.id ${network.networkInfo.id}`);
+                    const containersUsingNetwork = await getAllContainersUsingNetwork(network.name, containers);
+                    if(containersUsingNetwork.length > 0){
+                        console.log(`Unable to delete network ${network.name}.  A reusable container requires this network to sustain`);
+                        continue;
+                    }
                     const networkToDelete = docker.getNetwork(network.networkInfo.id);
                     networkToDelete.remove();
                     console.log(`Network ${network.name} deleted`);
                 }catch (err) {
-                    console.error(`Unable to delete Network! ${network.Name}  ${err}`);
+                    console.error(`Unable to delete Network! ${network.name}  ${err}`);
                 }
             }
         }

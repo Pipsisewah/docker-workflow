@@ -6,6 +6,9 @@ const docker = new Docker();
 const containerActions = {};
 const containers = [];
 
+containerActions.getContainers = () => {
+    return containers;
+}
 containerActions.cleanup = async () => {
 
         // List all containers, including stopped ones
@@ -13,28 +16,40 @@ containerActions.cleanup = async () => {
 
         // Iterate over the containers array
         for (const containerObj of containers) {
+            const containerName = containerObj.containerName;
+
+            // Find the container by name
+            const containerInfo = allContainers.find(container =>
+                container.Names.some(name => name === `/${containerName}`)
+            );
+
+            if (!containerInfo) {
+                console.log(`Container with name ${containerName} not found.`);
+                continue;
+            }
+
+            const container = docker.getContainer(containerInfo.Id);
             try {
-                const containerName = containerObj.containerName;
-
-                // Find the container by name
-                const containerInfo = allContainers.find(container =>
-                    container.Names.some(name => name === `/${containerName}`)
-                );
-
-                if (!containerInfo) {
-                    console.log(`Container with name ${containerName} not found.`);
-                    continue;
-                }
-
-                // Get the container object
-                const container = docker.getContainer(containerInfo.Id);
-
                 // Stop the container
                 await container.stop();
                 console.log(`Container ${containerName} stopped successfully.`);
             } catch (err) {
-                    console.error('Error:', err.message);
+                console.error(`Error Stopping Container ${containerName}:`, err.message);
             }
+            try {
+                if (!containerObj.reuse) {
+                    container.remove((err, data) => {
+                        if (err) {
+                            console.error(`Error removing the container ${containerName}:`, err);
+                            return;
+                        }
+                        console.log(`Container ${containerName} removed:`, data);
+                    });
+                }
+            }catch (err) {
+                console.error(`Error Removing Container ${containerName}:`, err.message);
+            }
+
         }
 }
 

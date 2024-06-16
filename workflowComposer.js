@@ -37,15 +37,15 @@ createContainer = async (context, event, { action }) => {
                 console.error(`Error waiting for the container ${container.containerName }:`, err);
                 return;
             }
-            console.log(`Container ${action.containerName } has stopped:`, data);
-            container.remove((err, data) => {
-                if (err) {
-                    console.error(`Error removing the container ${action.containerName }:`, err);
-                    return;
-                }
-                console.log(`Container ${action.containerName } removed:`, data);
-                mainService.send('NEXT');
-            });
+            // console.log(`Container ${action.containerName } has stopped:`, data);
+            // container.remove((err, data) => {
+            //     if (err) {
+            //         console.error(`Error removing the container ${action.containerName }:`, err);
+            //         return;
+            //     }
+            //     console.log(`Container ${action.containerName } removed:`, data);
+            //     mainService.send('NEXT');
+            // });
         });
     }
 }
@@ -113,7 +113,7 @@ workflowComposer.createAndRunWorkflow = (workflowDefinition, expressServer, envV
             console.log('Running Cleanup');
             containerActions.cleanup().then(result  => {
                 return volumeActions.cleanup().then(result => {
-                    return networkActions.cleanup().catch(error => {
+                    return networkActions.cleanup(containerActions.getContainers()).catch(error => {
                         console.error(`Failed to completely cleanup: ${error}`)
                     });
                 })
