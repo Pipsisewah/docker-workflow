@@ -1,0 +1,137 @@
+{
+  "stateMachine": {
+    "id": "dockerScript",
+    "initial": "setup",
+    "context": {},
+    "states": {
+      "setup": {
+        "entry": [
+          {
+            "type": "createVolume",
+            "Name": "attacklogs",
+            "persist": true
+          }
+        ],
+        "on": {
+          "NEXT": "juiceNetwork"
+        }
+      },
+      "juiceNetwork": {
+        "entry": [
+          {
+            "type": "createNetwork",
+            "networkName": "juice",
+            "subnetMask": "172.24.0.0/16",
+            "reuse": false
+          }
+        ],
+        "on": {
+          "NEXT": "dns"
+        }
+      },
+      "dns": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "container": "dns",
+            "reuse": true,
+            "containerName": "dns",
+            "dockerFolderName": "DNS",
+            "ExposedPorts": {"53/udp": {}},
+            "PortBindings": { "53/udp": [{ "HostPort": "53" }]},
+            "Binds": ["shared:/data/shared"],
+            "CapAdd": ["NET_ADMIN"],
+            "networkName": "juice",
+            "ipaddress": "172.24.0.2"
+          }
+        ],
+        "on": {
+          "NEXT": "juice"
+        }
+      },
+      "juice": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "container": "juiceserver",
+            "reuse": false,
+            "containerName": "juiceserver",
+            "dockerFolderName": "juiceshop",
+            "ExposedPorts": {"80/tcp": {}},
+            "PortBindings": { "3000/tcp": [{ "HostPort": "80" }]},
+            "networkName": "juice",
+            "ipaddress": "172.24.0.6",
+            "Dns": "172.24.0.2"
+          }
+        ],
+        "on": {
+          "NEXT": "pingServer"
+        }
+      },
+      "pingServer": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "container": "pingserver",
+            "reuse": false,
+            "await": true,
+            "containerName": "pingserver",
+            "dockerFolderName": "pingServer",
+            "ExposedPorts": {"8081/tcp": {}},
+            "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
+            "networkName": "juice",
+            "ipaddress": "172.24.0.15",
+            "Dns": "172.24.0.2",
+            "Binds": ["attacklogs:/data/attacklogs"]
+          }
+        ],
+        "on": {
+          "NEXT": "amass"
+        }
+      },
+      "amass": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "reuse": false,
+            "await": true,
+            "containerName": "amass",
+            "dockerFolderName": "amass",
+            "ExposedPorts": {"8083/tcp": {}},
+            "PortBindings": { "8083/tcp": [{ "HostPort": "8083" }]},
+            "networkName": "juice",
+            "ipaddress": "172.24.0.11",
+            "Dns": "172.24.0.2",
+            "Binds": ["attacklogs:/data/attacklogs"]
+          }
+        ],
+        "on": {
+          "NEXT": "nuceli"
+        }
+      },
+      "nuceli": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "container": "nucleiserver",
+            "reuse": false,
+            "containerName": "nucleiserver",
+            "dockerFolderName": "nuclei",
+            "ExposedPorts": {"8082/tcp": {}},
+            "PortBindings": { "8082/tcp": [{ "HostPort": "8082" }]},
+            "networkName": "juice",
+            "ipaddress": "172.24.0.8",
+            "Dns": "172.24.0.2",
+            "Binds": ["attacklogs:/data/attacklogs"]
+          }
+        ],
+        "on": {
+          "NEXT": "complete"
+        }
+      },
+      "complete": {
+        "type": "final"
+      }
+    }
+  }
+}

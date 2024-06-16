@@ -34,6 +34,15 @@
           "PortBindings": { "8082/tcp": [{ "HostPort": "8082" }]},
           "Binds": ["shared:/data/shared"],
           "networkName": "workflows"
+        },
+        {
+          "containerName": "dns",
+          "dockerFolderName": "DNS",
+          "ExposedPorts": {"53/udp": {}},
+          "PortBindings": { "53/udp": [{ "HostPort": "53" }]},
+          "Binds": ["shared:/data/shared"],
+          "CapAdd": ["NET_ADMIN"],
+          "networkName": "workflows"
         }
       ]
     },
@@ -42,7 +51,8 @@
         "entry": [
           {
             "type": "createVolume",
-            "Name": "shared"
+            "Name": "shared",
+            "persist": false
           }
         ],
         "on": {
@@ -54,6 +64,19 @@
           {
             "type": "startContainer",
             "container": "mongodb",
+            "reuse": true,
+            "static": true
+          }
+        ],
+        "on": {
+          "NEXT": "dns"
+        }
+      },
+      "dns": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "dns",
             "reuse": true,
             "static": true
           }
@@ -94,7 +117,7 @@
             "type": "startContainer",
             "container": "simple-node-reader",
             "reuse": false,
-            "static": true
+            "static": false
           }
         ],
         "on": {

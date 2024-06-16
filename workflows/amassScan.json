@@ -1,0 +1,96 @@
+{
+  "stateMachine": {
+    "id": "dockerScript",
+    "initial": "setup",
+    "context": {},
+    "states": {
+      "setup": {
+        "entry": [
+          {
+            "type": "createVolume",
+            "Name": "scanlogs",
+            "persist": true
+          }
+        ],
+        "on": {
+          "NEXT": "setupScanNetwork"
+        }
+      },
+      "setupScanNetwork": {
+        "entry": [
+          {
+            "type": "createNetwork",
+            "networkName": "scannetwork",
+            "subnetMask": "172.22.0.0/16",
+            "reuse": false
+          }
+        ],
+        "on": {
+          "NEXT": "dns"
+        }
+      },
+      "dns": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "reuse": true,
+            "containerName": "dns",
+            "dockerFolderName": "DNS",
+            "ExposedPorts": {"53/udp": {}},
+            "PortBindings": { "53/udp": [{ "HostPort": "53" }]},
+            "Binds": ["scanlogs:/data/scanlogs"],
+            "CapAdd": ["NET_ADMIN"],
+            "networkName": "scannetwork",
+            "ipaddress": "172.22.0.2"
+          }
+        ],
+        "on": {
+          "NEXT": "sandbox"
+        }
+      },
+      "sandbox": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "reuse": false,
+            "await": false,
+            "containerName": "sandbox",
+            "dockerFolderName": "sandbox",
+            "ExposedPorts": {"8081/tcp": {}},
+            "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
+            "networkName": "scannetwork",
+            "ipaddress": "172.22.0.16",
+            "Dns": "172.22.0.2",
+            "Binds": ["scanlogs:/data/scanlogs"]
+          }
+        ],
+        "on": {
+          "NEXT": "complete"
+        }
+      },
+      "amass": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "reuse": false,
+            "await": true,
+            "containerName": "amass",
+            "dockerFolderName": "amass",
+            "ExposedPorts": {"8083/tcp": {}},
+            "PortBindings": { "8083/tcp": [{ "HostPort": "8083" }]},
+            "networkName": "scannetwork",
+            "ipaddress": "172.22.0.11",
+            "Dns": "172.22.0.2",
+            "Binds": ["scanlogs:/data/scanlogs"]
+          }
+        ],
+        "on": {
+          "NEXT": "complete"
+        }
+      },
+      "complete": {
+        "type": "final"
+      }
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "stateMachine": {
+    "id": "dockerScript",
+    "initial": "dns",
+    "context": {
+      "networks": [
+        {
+          "networkName": "recon",
+          "subnetMask": "172.24.0.0/16",
+          "reuse": false
+        }
+      ],
+      "containers": [
+        {
+          "containerName": "pingserver",
+          "dockerFolderName": "pingServer",
+          "ExposedPorts": {"8081/tcp": {}},
+          "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
+          "networkName": "recon",
+          "ipaddress": "172.24.0.15",
+          "Dns": "172.24.0.2"
+        },
+        {
+          "containerName": "amass",
+          "dockerFolderName": "amass",
+          "ExposedPorts": {"8080/tcp": {}},
+          "PortBindings": { "8080/tcp": [{ "HostPort": "8080" }]},
+          "networkName": "recon",
+          "ipaddress": "172.24.0.6",
+          "Dns": "172.24.0.2"
+        },
+        {
+          "containerName": "dns",
+          "dockerFolderName": "DNS",
+          "ExposedPorts": {"53/udp": {}},
+          "PortBindings": { "53/udp": [{ "HostPort": "53" }]},
+          "Binds": ["shared:/data/shared"],
+          "CapAdd": ["NET_ADMIN"],
+          "networkName": "recon",
+          "ipaddress": "172.24.0.2"
+        },
+        {
+          "containerName": "express",
+          "dockerFolderName": "Express",
+          "ExposedPorts": {"80/tcp": {}},
+          "PortBindings": { "80/tcp": [{ "HostPort": "80" }]},
+          "networkName": "recon",
+          "ipaddress": "172.24.0.10"
+        }
+      ]
+    },
+    "states": {
+      "dns": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "dns",
+            "reuse": false,
+            "static": true
+          }
+        ],
+        "on": {
+          "NEXT": "express"
+        }
+      },
+      "express": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "express",
+            "reuse": false,
+            "static": true
+          }
+        ],
+        "on": {
+          "NEXT": "pingServer"
+        }
+      },
+      "pingServer": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "pingserver",
+            "reuse": false,
+            "static": true
+          }
+        ],
+        "on": {
+          "NEXT": "startAmass"
+        }
+      },
+      "startAmass": {
+        "entry": [
+          {
+            "type": "startContainer",
+            "container": "amass",
+            "reuse": false,
+            "static": true
+          }
+        ],
+        "on": {
+          "NEXT": "complete"
+        }
+      },
+      "complete": {
+        "type": "final"
+      }
+    }
+  }
+}
