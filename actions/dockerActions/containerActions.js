@@ -80,9 +80,9 @@ const buildImage = async (docker, containerConfig) => {
             pull: true,
         }
     );
-     if(process.env.debug) {
+     // if(process.env.debug) {
         await attachDebugLogsToContainer(stream);
-     }
+     // }
     await new Promise((resolve, reject) => {
         function onFinished(err, output) {
             console.log(`${containerConfig.containerName} build has finished`);
