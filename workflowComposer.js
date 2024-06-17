@@ -37,6 +37,7 @@ createContainer = async (context, event, { action }) => {
                 console.error(`Error waiting for the container ${container.containerName }:`, err);
                 return;
             }
+            mainService.send('NEXT');
             // console.log(`Container ${action.containerName } has stopped:`, data);
             // container.remove((err, data) => {
             //     if (err) {

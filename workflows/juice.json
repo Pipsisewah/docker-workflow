@@ -75,7 +75,8 @@
             "networkName": "juice",
             "ipaddress": "172.24.0.15",
             "Dns": "172.24.0.2",
-            "Binds": ["attacklogs:/data/attacklogs"]
+            "Binds": ["attacklogs:/data/attacklogs"],
+            "reuse": true
           }
         ],
         "on": {
@@ -87,6 +88,7 @@
           {
             "type": "createContainer",
             "reuse": true,
+            "sustain": true,
             "containerName": "nuclei",
             "dockerFolderName": "nuclei",
             "ExposedPorts": {"8082/tcp": {}},
@@ -94,7 +96,8 @@
             "networkName": "juice",
             "ipaddress": "172.24.0.8",
             "Dns": "172.24.0.2",
-            "Binds": ["attacklogs:/data/attacklogs"]
+            "Binds": ["attacklogs:/data/attacklogs"],
+            "await": true
           }
         ],
         "on": {

@@ -4,4 +4,4 @@ FROM projectdiscovery/nuclei:latest
 # Run Nuclei with the specified target URL and output file
 ENTRYPOINT ["nuclei"]
 
-CMD ["-u", "slopesjuiceship.com" , "-rl", "10", "-o", "/data/attacklogs/nuceli.json", "-v"]
+CMD sh -c 'nuclei -u "$apexDomain" -rl 10 -o /data/attacklogs/nuclei.json -v'

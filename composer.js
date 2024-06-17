@@ -2,7 +2,7 @@ const workflowComposer = require('./workflowComposer');
 const express = require('./api/index');
 
 async function main() {
-    const apexDomain = "slopesjuiceshop.com";
+    const apexDomain = "slopesjuiceshop.com:3000";
     const expressServer = express.start(3000);
     const workflowDefinition = await workflowComposer.readWorkflow('juice');
     workflowComposer.createAndRunWorkflow(workflowDefinition, expressServer, {apexDomain: apexDomain});

@@ -51,8 +51,10 @@ containerActions.cleanup = async () => {
         for (const containerObj of containers) {
             try {
                 const container = await getContainer(containerObj.containerName);
-                await stopContainer(container, containerObj);
-                await removeContainer(container, containerObj);
+                if(!containerObj.sustain) {
+                    await stopContainer(container, containerObj);
+                    await removeContainer(container, containerObj);
+                }
             } catch (err) {
                 console.error(err);
             }
