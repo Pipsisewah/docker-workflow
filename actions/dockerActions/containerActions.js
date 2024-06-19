@@ -74,7 +74,7 @@ const attachDebugLogsToContainer = async(containerBuildStream) => {
 }
 const buildImage = async (docker, containerConfig) => {
     console.log(`Building Image ${containerConfig.containerName}`);
-    const contextPath = path.join(__dirname, '../../images/', containerConfig.containerName);
+    const contextPath = path.join(__dirname, '../../images/', containerConfig.dockerFolderName);
     const tarStream = tar.pack(contextPath);
     const stream = await docker.buildImage(tarStream,
         {
@@ -82,9 +82,9 @@ const buildImage = async (docker, containerConfig) => {
             pull: true,
         }
     );
-     // if(process.env.debug) {
-        await attachDebugLogsToContainer(stream);
-     // }
+     // // if(process.env.debug) {
+     //    await attachDebugLogsToContainer(stream);
+     // // }
     await new Promise((resolve, reject) => {
         function onFinished(err, output) {
             console.log(`${containerConfig.containerName} build has finished`);

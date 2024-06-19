@@ -30,7 +30,7 @@ containerValidation.checkMongoDBReady = async (container) => {
     await check();
 
     // Function to notify main service about completion
-    function notifyMainService(containerId, status) {
+    async function notifyMainService(containerId, status) {
         axios.post('http://localhost:3000/notify', { containerId, status })
             .then(response => {
                 console.log('Notification sent successfully');
@@ -41,7 +41,7 @@ containerValidation.checkMongoDBReady = async (container) => {
     }
 
 // Call notifyMainService when job is completed
-    notifyMainService(container.containerName, 'checkMongoDBReady completed');
+    await notifyMainService(container.containerName, 'checkMongoDBReady completed');
 };
 
 module.exports = containerValidation;

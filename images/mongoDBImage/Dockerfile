@@ -1,12 +1,12 @@
-# Use the official MongoDB image as the base image
+# Use the official MongoDB image as the base
 FROM mongo:latest
 
-# Optionally, you can specify a custom MongoDB configuration file
-# COPY mongodb.conf /etc/mongo/mongodb.conf
-# CMD ["mongod", "--config", "/etc/mongo/mongodb.conf"]
+# Optional: Set environment variables
+#ENV MONGO_INITDB_ROOT_USERNAME root
+#ENV MONGO_INITDB_ROOT_PASSWORD example
 
-# Expose the default MongoDB port (27017)
+# Optional: Copy initialization scripts
+COPY init-mongo.js /docker-entrypoint-initdb.d/
+
+# Expose the MongoDB port
 EXPOSE 27017
-
-# Start MongoDB when the container starts
-CMD ["mongod"]

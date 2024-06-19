@@ -26,40 +26,6 @@
           }
         ],
         "on": {
-          "NEXT": "dns"
-        }
-      },
-      "dns": {
-        "entry": [
-          {
-            "type": "createContainer",
-            "reuse": true,
-            "containerName": "dns",
-            "dockerFolderName": "DNS",
-            "ExposedPorts": {"53/udp": {}},
-            "PortBindings": { "53/udp": [{ "HostPort": "53" }]},
-            "Binds": ["shared:/data/shared"],
-            "CapAdd": ["NET_ADMIN"],
-            "networkName": "juice",
-            "ipaddress": "172.24.0.2"
-          }
-        ],
-        "on": {
-          "NEXT": "juice"
-        }
-      },
-      "juice": {
-        "entry": [
-          {
-            "type": "createContainer",
-            "containerName": "juiceshop",
-            "dockerFolderName": "juiceshop",
-            "networkName": "juice",
-            "ipaddress": "172.24.0.6",
-            "Dns": "172.24.0.2"
-          }
-        ],
-        "on": {
           "NEXT": "pingServer"
         }
       },
@@ -67,37 +33,14 @@
         "entry": [
           {
             "type": "createContainer",
-            "container": "pingserver",
-            "containerName": "pingserver",
-            "dockerFolderName": "pingServer",
+            "containerName": "sandbox-container",
+            "dockerFolderName": "sandbox",
             "ExposedPorts": {"8081/tcp": {}},
             "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
             "networkName": "juice",
             "ipaddress": "172.24.0.15",
             "Dns": "172.24.0.2",
-            "Binds": ["attacklogs:/data/attacklogs"],
             "reuse": true
-          }
-        ],
-        "on": {
-          "NEXT": "nuceli"
-        }
-      },
-      "nuceli": {
-        "entry": [
-          {
-            "type": "createContainer",
-            "reuse": true,
-            "sustain": true,
-            "containerName": "nuclei",
-            "dockerFolderName": "nuclei",
-            "ExposedPorts": {"8082/tcp": {}},
-            "PortBindings": { "8082/tcp": [{ "HostPort": "8082" }]},
-            "networkName": "juice",
-            "ipaddress": "172.24.0.8",
-            "Dns": "172.24.0.2",
-            "Binds": ["attacklogs:/data/attacklogs"],
-            "await": true
           }
         ],
         "on": {

@@ -36,14 +36,18 @@ networkActions.trackNetwork = (networkInfo, dockerNetwork) => {
 networkActions.createNetwork = async (networkInfo) => {
     try {
         console.log(`Creating network: ${networkInfo.networkName}`);
-        const network = await docker.createNetwork({
-            Name: networkInfo.networkName,
-            Driver: 'bridge',
-            IPAM: {
+        let subnetConfig;
+        if(networkInfo.subnetMask) {
+            subnetConfig = {
                 Config: [{
                     Subnet: networkInfo.subnetMask
                 }]
-            }
+            };
+        }
+        const network = await docker.createNetwork({
+            Name: networkInfo.networkName,
+            Driver: 'bridge',
+            IPAM: subnetConfig
         });
         console.log('Network created:', network.id);
        networkActions.trackNetwork(networkInfo, network);

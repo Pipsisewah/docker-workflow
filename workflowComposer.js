@@ -111,14 +111,14 @@ workflowComposer.createAndRunWorkflow = (workflowDefinition, expressServer, envV
     mainService = interpret(workflowMachine)
         .onTransition((state) => {})
         .onDone((context, event) => {
-            console.log('Running Cleanup');
-            containerActions.cleanup().then(result  => {
-                return volumeActions.cleanup().then(result => {
-                    return networkActions.cleanup(containerActions.getContainers()).catch(error => {
-                        console.error(`Failed to completely cleanup: ${error}`)
-                    });
-                })
-            })
+            // console.log('Running Cleanup');
+            // containerActions.cleanup().then(result  => {
+            //     return volumeActions.cleanup().then(result => {
+            //         return networkActions.cleanup(containerActions.getContainers()).catch(error => {
+            //             console.error(`Failed to completely cleanup: ${error}`)
+            //         });
+            //     })
+            // })
 
 
             console.log('Operation Complete');
