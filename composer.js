@@ -1,12 +1,11 @@
+const workflowComposer = require('./workflowComposer');
 const express = require('./api/index');
-const Workflow = require('./Workflow');
 
 async function main() {
     const apexDomain = "slopesjuiceshop.com:3000";
     const expressServer = express.start(3000);
-    const debug = true;
-    const mainWorkflow = new Workflow({workflowName, envVariables: {apexDomain}, debug}, expressServer);
-    await mainWorkflow.start();
+    const workflowDefinition = await workflowComposer.readWorkflow('recon');
+    workflowComposer.createAndRunWorkflow(workflowDefinition, expressServer, {apexDomain: apexDomain});
 }
 
 main().then(() => {
