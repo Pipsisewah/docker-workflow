@@ -72,9 +72,9 @@ const attachDebugLogsToContainer = async(containerBuildStream) => {
             process.stdout.write(log);
         });
 }
-const buildImage = async (docker, containerConfig) => {
+const buildImage = async (docker, containerConfig, workflowName) => {
     console.log(`Building Image ${containerConfig.containerName}`);
-    const contextPath = path.join(__dirname, '../../images/', containerConfig.dockerFolderName);
+    const contextPath = path.join(__dirname, '../../projects/', workflowName, '/containers/', containerConfig.dockerFolderName);
     const tarStream = tar.pack(contextPath);
     const stream = await docker.buildImage(tarStream,
         {
@@ -138,8 +138,8 @@ const configureContainer = (containerConfig) => {
         NetworkingConfig
     }
 }
-const createAndStartContainer = async (docker, containerConfig) => {
-    await buildImage(docker, containerConfig);
+const createAndStartContainer = async (docker, containerConfig, workflowName) => {
+    await buildImage(docker, containerConfig, workflowName);
     const container = await docker.createContainer(configureContainer(containerConfig));
     await container.start();
 };
@@ -171,11 +171,11 @@ const removeIfNotReuse = async (containerConfig) => {
         return {containerExists, containerRunning};
 }
 
-containerActions.startContainer =  async (containerConfig) => {
+containerActions.startContainer =  async (containerConfig, workflowName) => {
     try {
         const {containerExists, containerRunning} = await removeIfNotReuse(containerConfig);
         if (!containerExists) {
-            await createAndStartContainer(docker, containerConfig);
+            await createAndStartContainer(docker, containerConfig, workflowName);
             console.log('Container started successfully');
         } else if (!containerRunning) {
             console.log('Dockerfile Exists but is not running.  Starting!');
