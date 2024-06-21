@@ -3,6 +3,7 @@ const {send, assign, Machine, interpret, sendParent} = require("xstate");
 const containerValidation = require("./actions/containerValidation");
 const util = require("util");
 const fs = require("fs");
+const {containerActions, volumeActions, networkActions} = require("./actions/dockerActions");
 const readFileAsync = util.promisify(fs.readFile);
 
 class Workflow {
@@ -14,11 +15,14 @@ class Workflow {
     }
 
     activeWorkflow = null;
+    containers = [];
+    networks = [];
+    volumes = [];
 
     start = async () => {
         console.log(`Starting Workflow ${this.workflowName}`);
         const workflowDefinition = await this.readWorkflow(this.workflowName);
-        this.createAndRunWorkflow(workflowDefinition, this.envVariables, this.workflowName, this.expressServer);
+        await this.createAndRunWorkflow(workflowDefinition, this.envVariables, this.workflowName, this.expressServer);
     }
 
     readWorkflow = async (workflowName) => {
@@ -35,7 +39,8 @@ class Workflow {
 
     createContainer = async (context, event, { action }) => {
         action.Env = context;
-        const container = await dockerActions.containerActions.startContainer(action, context.workflowName);
+        const container = await dockerActions.containerActions.startContainer(action, this.workflowName);
+        this.trackContainer(action);
         await this.verifyContainerServiceStarted(action);
         console.log('Container Started');
         if(!action.await){
@@ -74,15 +79,17 @@ class Workflow {
     createNetwork = async (context, event, {action}) => {
         const networkInfo = await dockerActions.networkActions.getActiveNetworkInfo(action.networkName);
         if(!networkInfo) {
-            await dockerActions.networkActions.createNetwork(action);
+            const networkInfo = await dockerActions.networkActions.createNetwork(action);
+            this.trackNetwork(networkInfo)
         }else{
-            dockerActions.networkActions.trackNetwork(action, networkInfo);
+            this.trackNetwork(networkInfo);
         }
         this.activeWorkflow.send('NEXT');
     }
 
     createVolume = async (context, event, {action }) => {
-        await dockerActions.volumeActions.createVolume(action);
+        const volume = await dockerActions.volumeActions.createVolume(action);
+        this.trackVolume(volume);
         this.activeWorkflow.send('NEXT');
     }
 
@@ -129,28 +136,57 @@ class Workflow {
         );
         console.log(`apexDomain ${JSON.stringify(envVariables)}`);
         console.log(`workflowMachine.context ${JSON.stringify(workflowMachine.context)}`);
-        this.activeWorkflow = interpret(workflowMachine)
-            .onTransition((state) => {})
-            .onDone((context, event) => {
-                // console.log('Running Cleanup');
-                // containerActions.cleanup().then(result  => {
-                //     return volumeActions.cleanup().then(result => {
-                //         return networkActions.cleanup(containerActions.getContainers()).catch(error => {
-                //             console.error(`Failed to completely cleanup: ${error}`)
-                //         });
-                //     })
-                // })
+        return new Promise((resolve, reject) => {
+            this.activeWorkflow = interpret(workflowMachine)
+                .onTransition((state) => {
+                })
+                .onDone(async (context, event) => {
+                    console.log(`Running Cleanup on ${this.workflowName}`);
+                    await this.cleanup();
+                    await volumeActions.cleanup(this.volumes);
+                    await networkActions.cleanup(this.networks, this.containers);
+                    console.log(`Operation Complete ${JSON.stringify(context)}`);
+                    if(expressServer){
+                        expressServer.close()
+                    }
+                    if(this.parentWorkflow){
+                        this.parentWorkflow.send('NEXT');
+                    }
+                })
+                .start();
+        });
+    }
 
+    cleanup = async () => {
+        const containersDeepCopy = JSON.parse(JSON.stringify(this.containers));
+        for (const containerObj of containersDeepCopy) {
+            try {
+                console.log(`Cleaning up ${containerObj.containerName}`);
+                const container = await containerActions.getContainer(containerObj.containerName);
+                if(!containerObj.sustain) {
+                    await containerActions.stopContainer(container, containerObj);
+                    await containerActions.removeContainer(container, containerObj);
+                    const containerIndex = this.containers.findIndex(obj => obj.containerName === containerObj.containerName);
+                    if(containerIndex !== -1){
+                        this.containers.splice(containerIndex, 1);
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    }
 
-                console.log(`Operation Complete ${JSON.stringify(context)}`);
-                if(expressServer){
-                    expressServer.close()
-                }
-                if(this.parentWorkflow){
-                    this.parentWorkflow.send('NEXT');
-                }
-            })
-            .start();
+    trackContainer = (container) => {
+        this.containers.push(container);
+    }
+
+    trackNetwork = (networkInfo) => {
+        this.networks.push(networkInfo);
+    }
+
+    trackVolume = (volume) => {
+        this.volumes.push(volume);
     }
 }
 

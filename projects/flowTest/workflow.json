@@ -12,6 +12,18 @@
           }
         ],
         "on": {
+          "NEXT": "createVolume"
+        }
+      },
+      "createVolume": {
+        "entry": [
+          {
+            "type": "createVolume",
+            "Name": "recon",
+            "persist": true
+          }
+        ],
+        "on": {
           "NEXT": "nginxImage"
         }
       },
@@ -36,6 +48,22 @@
           {
             "type": "runWorkflow",
             "workflowName": "secondFlow"
+          }
+        ],
+        "on": {
+          "NEXT": "nginxImage3"
+        }
+      },
+      "nginxImage3": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "await": true,
+            "containerName": "nginx3",
+            "dockerFolderName": "nginxImage",
+            "ExposedPorts": {"8084/tcp": {}},
+            "PortBindings": { "8084/tcp": [{ "HostPort": "8084" }]},
+            "networkName": "recon"
           }
         ],
         "on": {
