@@ -1,22 +1,23 @@
 const Docker = require("dockerode");
 const docker = new Docker();
 const volumeActions = {};
-const volumes = [];
+
+
+
 
 volumeActions.createVolume = async (action) => {
-    const createdVolume = await docker.createVolume({
+    const volume = await docker.createVolume({
         Name: action.Name
     });
-    volumes.push({
+    return {
         name: action.Name,
         persist: action.persist,
-        volume: createdVolume
-    });
+        volume: volume
+    }
 }
 
-volumeActions.cleanup = async () => {
+volumeActions.cleanup = async (volumes) => {
     if(volumes.length > 0){
-        console.log('Cleaning up open volumes');
         for (const attachedVolume of volumes){
             if(!attachedVolume.persist){
                 try {
