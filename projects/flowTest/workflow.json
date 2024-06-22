@@ -7,17 +7,6 @@
       "setup": {
         "entry": [
           {
-            "type": "createNetwork",
-            "networkName": "recon"
-          }
-        ],
-        "on": {
-          "NEXT": "createVolume"
-        }
-      },
-      "createVolume": {
-        "entry": [
-          {
             "type": "createVolume",
             "Name": "recon",
             "persist": true
@@ -32,11 +21,27 @@
           {
             "type": "createContainer",
             "await": true,
+            "reuse": true,
             "containerName": "nginx",
             "dockerFolderName": "nginxImage",
             "ExposedPorts": {"8083/tcp": {}},
             "PortBindings": { "8083/tcp": [{ "HostPort": "8083" }]},
             "networkName": "recon"
+          }
+        ],
+        "on": {
+          "NEXT": "amass"
+        }
+      },
+      "amass": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "await": true,
+            "reuse": true,
+            "containerName": "amass",
+            "dockerFolderName": "amass",
+            "Binds": ["recon:/data/recon"]
           }
         ],
         "on": {

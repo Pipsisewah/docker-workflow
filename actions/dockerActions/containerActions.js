@@ -69,9 +69,9 @@ const buildImage = async (docker, containerConfig, workflowName) => {
             resolve();
         }
         function onProgress(event) {
-            if(process.env.debug) {
+            //if(process.env.debug) {
                 console.log(`${containerConfig.containerName} progress: ${JSON.stringify(event)}`);
-            }
+            //}
         }
         docker.modem.followProgress(stream, onFinished, onProgress);
     });
@@ -99,6 +99,7 @@ const configureContainer = (containerConfig) => {
         }
     }
     const env = transformEnvObjectToArray(containerConfig.Env);
+    console.log(`ENV VARIABLES: ${env}`);
     return {
         t: containerConfig.containerName,
         Image: containerConfig.containerName,

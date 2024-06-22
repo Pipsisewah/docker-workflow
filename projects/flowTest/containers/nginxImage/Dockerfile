@@ -22,6 +22,12 @@ COPY app.js .
 # Expose port 80 to allow external access to the NGINX server
 EXPOSE 8080
 
+# Set the environment variable
+ENV apexDomain=${apexDomain}
+
+# Print the environment variable during the build
+RUN echo "Build time: apexDomain is ${apexDomain}"
+
 # Start NGINX when the container starts "app.js"
 CMD ["node", "app.js"]
 

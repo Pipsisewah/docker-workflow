@@ -3,9 +3,10 @@ const Workflow = require('./Workflow');
 
 async function main() {
     const workflowName = 'flowTest';
-    const apexDomain = "slopesjuiceshop.com:3000";
+    const apexDomain = "slopesprogramming.com";
     const expressServer = express.start(3000);
-    const mainWorkflow = new Workflow({workflowName, envVariables: {apexDomain}}, expressServer);
+    const debug = true;
+    const mainWorkflow = new Workflow({workflowName, envVariables: {apexDomain}, debug}, expressServer);
     await mainWorkflow.start();
 }
 
