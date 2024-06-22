@@ -1,110 +1,77 @@
 {
   "stateMachine": {
     "id": "dockerScript",
-    "initial": "dns",
-    "context": {
-      "networks": [
-        {
-          "networkName": "recon",
-          "subnetMask": "172.24.0.0/16",
-          "reuse": false
-        }
-      ],
-      "containers": [
-        {
-          "containerName": "pingserver",
-          "dockerFolderName": "pingServer",
-          "ExposedPorts": {"8081/tcp": {}},
-          "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
-          "networkName": "recon",
-          "ipaddress": "172.24.0.15",
-          "Dns": "172.24.0.2"
-        },
-        {
-          "containerName": "amass",
-          "dockerFolderName": "amass",
-          "ExposedPorts": {"8080/tcp": {}},
-          "PortBindings": { "8080/tcp": [{ "HostPort": "8080" }]},
-          "networkName": "recon",
-          "ipaddress": "172.24.0.6",
-          "Dns": "172.24.0.2"
-        },
-        {
-          "containerName": "dns",
-          "dockerFolderName": "DNS",
-          "ExposedPorts": {"53/udp": {}},
-          "PortBindings": { "53/udp": [{ "HostPort": "53" }]},
-          "Binds": ["shared:/data/shared"],
-          "CapAdd": ["NET_ADMIN"],
-          "networkName": "recon",
-          "ipaddress": "172.24.0.2"
-        },
-        {
-          "containerName": "express",
-          "dockerFolderName": "Express",
-          "ExposedPorts": {"80/tcp": {}},
-          "PortBindings": { "80/tcp": [{ "HostPort": "80" }]},
-          "networkName": "recon",
-          "ipaddress": "172.24.0.10"
-        }
-      ]
-    },
+    "initial": "setup",
+    "context": {},
     "states": {
-      "dns": {
+      "setup": {
         "entry": [
           {
-            "type": "startContainer",
-            "container": "dns",
-            "reuse": false,
-            "static": true
+            "type": "createNetwork",
+            "networkName": "recon"
           }
         ],
         "on": {
-          "NEXT": "express"
+          "NEXT": "createVolume"
         }
       },
-      "express": {
+      "createVolume": {
         "entry": [
           {
-            "type": "startContainer",
-            "container": "express",
-            "reuse": false,
-            "static": true
+            "type": "createVolume",
+            "Name": "recon",
+            "persist": true
           }
         ],
         "on": {
-          "NEXT": "pingServer"
+          "NEXT": "mongodb"
         }
       },
-      "pingServer": {
-        "entry": [
-          {
-            "type": "startContainer",
-            "container": "pingserver",
-            "reuse": false,
-            "static": true
+        "mongodb": {
+          "entry": [
+            {
+              "type": "createContainer",
+              "containerName": "mongodb",
+              "dockerFolderName": "mongoDBImage",
+              "ExposedPorts": {
+                "27017/tcp": {}
+              },
+              "PortBindings": {
+                "27017/tcp": [
+                  {
+                    "HostPort": "27017"
+                  }
+                ]
+              },
+              "networkName": "recon",
+              "reuse": true
+            }
+          ],
+          "on": {
+            "NEXT": "amass"
           }
-        ],
-        "on": {
-          "NEXT": "startAmass"
-        }
-      },
-      "startAmass": {
+        },
+      "amass": {
         "entry": [
           {
-            "type": "startContainer",
-            "container": "amass",
-            "reuse": false,
-            "static": true
+            "type": "createContainer",
+            "await": true,
+            "containerName": "amass",
+            "dockerFolderName": "amass",
+            "ExposedPorts": {"8083/tcp": {}},
+            "PortBindings": { "8083/tcp": [{ "HostPort": "8083" }]},
+            "networkName": "recon",
+            "Binds": ["recon:/data/recon"]
           }
         ],
         "on": {
           "NEXT": "complete"
         }
       },
-      "complete": {
-        "type": "final"
+        "complete": {
+          "type": "final"
+        }
       }
     }
-  }
+
 }

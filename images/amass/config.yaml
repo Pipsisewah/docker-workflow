@@ -4,13 +4,15 @@ scope:
     ports: # ports to be used when actively reaching a service
         - 443
 output:
-    directory: /data/scanlogs/
+    directory: /data/recon/
     format: json
 options:
-    resolvers:
-        - 172.22.0.2
     bruteforce: # specific option to use when brute forcing is needed
         enabled: false
     alterations: # specific option to use when brute forcing is needed
         enabled: false
     #database: "postgres://amass_user:amass_password@172.22.0.4:5432/amass?sslmode=disable" # databases URI to be used when adding entries
+network_settings:
+    max_dns_queries: 10
+    max_cname_count: 10
+    dns_query_timeout: 10

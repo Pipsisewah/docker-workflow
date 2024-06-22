@@ -2,14 +2,11 @@ const tar = require("tar-fs");
 const path = require("path");
 const Docker = require("dockerode");
 const docker = new Docker();
+const util = require('util');
+
 const containerActions = {};
-const containers = [];
 
-containerActions.getContainers = () => {
-    return containers;
-}
-
-const getContainer = async(containerName) => {
+containerActions.getContainer = async(containerName) => {
     const allContainers = await docker.listContainers({ all: true });
     const containerInfo = allContainers.find(container =>
         container.Names.some(name => name === `/${containerName}`)
@@ -21,7 +18,7 @@ const getContainer = async(containerName) => {
     return container;
 }
 
-const stopContainer = async(container, containerInfo) => {
+containerActions.stopContainer = async(container, containerInfo) => {
     try {
         await container.stop();
         console.log(`Container ${containerInfo.containerName} stopped successfully.`);
@@ -30,38 +27,21 @@ const stopContainer = async(container, containerInfo) => {
     }
 }
 
-const removeContainer = async(container, containerInfo) => {
+containerActions.removeContainer = async(container, containerInfo) => {
     try {
         if (!containerInfo.reuse) {
-            container.remove((err, data) => {
-                if (err) {
-                    console.error(`Error removing the container ${containerInfo.containerName}:`, err);
-                    return;
-                }
-                console.log(`Container ${containerInfo.containerName} deleted`);
-            });
+            const removeContainer = util.promisify(container.remove).bind(container);
+            await removeContainer();
+            console.log(`Container ${containerInfo.containerName} deleted`);
         }
     }catch (err) {
         console.error(`Error Removing Container ${containerInfo.containerName}:`, err.message);
     }
+    console.log('Returning from removeContainer');
 }
 
 
-containerActions.cleanup = async () => {
-        for (const containerObj of containers) {
-            try {
-                const container = await getContainer(containerObj.containerName);
-                await stopContainer(container, containerObj);
-                await removeContainer(container, containerObj);
-            } catch (err) {
-                console.error(err);
-            }
-        }
-}
 
-containerActions.trackContainer = (container) => {
-    containers.push(container);
-}
 
 const attachDebugLogsToContainer = async(containerBuildStream) => {
     containerBuildStream.pipe(process.stdout, { end: true });
@@ -70,9 +50,9 @@ const attachDebugLogsToContainer = async(containerBuildStream) => {
             process.stdout.write(log);
         });
 }
-const buildImage = async (docker, containerConfig) => {
+const buildImage = async (docker, containerConfig, workflowName) => {
     console.log(`Building Image ${containerConfig.containerName}`);
-    const contextPath = path.join(__dirname, '../../images/', containerConfig.containerName);
+    const contextPath = path.join(__dirname, '../../projects/', workflowName, '/containers/', containerConfig.dockerFolderName);
     const tarStream = tar.pack(contextPath);
     const stream = await docker.buildImage(tarStream,
         {
@@ -80,18 +60,18 @@ const buildImage = async (docker, containerConfig) => {
             pull: true,
         }
     );
-     if(process.env.debug) {
-        await attachDebugLogsToContainer(stream);
-     }
+     // // if(process.env.debug) {
+     //    await attachDebugLogsToContainer(stream);
+     // // }
     await new Promise((resolve, reject) => {
         function onFinished(err, output) {
             console.log(`${containerConfig.containerName} build has finished`);
             resolve();
         }
         function onProgress(event) {
-            if(process.env.debug) {
+            //if(process.env.debug) {
                 console.log(`${containerConfig.containerName} progress: ${JSON.stringify(event)}`);
-            }
+            //}
         }
         docker.modem.followProgress(stream, onFinished, onProgress);
     });
@@ -119,6 +99,7 @@ const configureContainer = (containerConfig) => {
         }
     }
     const env = transformEnvObjectToArray(containerConfig.Env);
+    console.log(`ENV VARIABLES: ${env}`);
     return {
         t: containerConfig.containerName,
         Image: containerConfig.containerName,
@@ -136,8 +117,8 @@ const configureContainer = (containerConfig) => {
         NetworkingConfig
     }
 }
-const createAndStartContainer = async (docker, containerConfig) => {
-    await buildImage(docker, containerConfig);
+const createAndStartContainer = async (docker, containerConfig, workflowName) => {
+    await buildImage(docker, containerConfig, workflowName);
     const container = await docker.createContainer(configureContainer(containerConfig));
     await container.start();
 };
@@ -169,11 +150,12 @@ const removeIfNotReuse = async (containerConfig) => {
         return {containerExists, containerRunning};
 }
 
-containerActions.startContainer =  async (containerConfig) => {
+containerActions.startContainer =  async (containerConfig, workflowName) => {
     try {
         const {containerExists, containerRunning} = await removeIfNotReuse(containerConfig);
+        console.log(`${containerConfig.containerName} containerExists: ${containerExists} containerRunning ${containerRunning}`);
         if (!containerExists) {
-            await createAndStartContainer(docker, containerConfig);
+            await createAndStartContainer(docker, containerConfig, workflowName);
             console.log('Container started successfully');
         } else if (!containerRunning) {
             console.log('Dockerfile Exists but is not running.  Starting!');
@@ -182,7 +164,6 @@ containerActions.startContainer =  async (containerConfig) => {
         } else {
             console.log('Dockerfile already running!');
         }
-        containerActions.trackContainer(containerConfig);
     } catch (err) {
         console.error(`Failed to start container!  ${err.message}`)
         throw new Error('Failed to start container!');

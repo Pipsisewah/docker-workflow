@@ -23,7 +23,7 @@ COPY app.js .
 EXPOSE 8081
 
 # Start NGINX when the container starts "app.js"
-CMD ["node", "app.js"]
+CMD ls -l /usr/src/app && node app.js
 
 # Use the official Node.js image from the Docker Hub
 

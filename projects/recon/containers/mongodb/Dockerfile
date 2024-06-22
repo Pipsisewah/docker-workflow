@@ -6,7 +6,7 @@ FROM mongo:latest
 #ENV MONGO_INITDB_ROOT_PASSWORD example
 
 # Optional: Copy initialization scripts
-COPY init-mongo.js /docker-entrypoint-initdb.d/
+#COPY init-mongo.js /docker-entrypoint-initdb.d/
 
 # Expose the MongoDB port
 EXPOSE 27017

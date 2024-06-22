@@ -13,4 +13,4 @@ COPY config.yaml /app/config.yaml
 RUN mkdir -p /app/output /app/logs
 
 # Use the configuration file when running Amass
-ENTRYPOINT ["amass", "enum", "-config", "/app/config.yaml", "-log", "/data/scanlogs/amass.txt"]
+ENTRYPOINT ["amass", "enum", "-config", "/app/config.yaml", "-log", "/data/recon/amass.log", "-o", "/data/recon/amass-results.json", "-json"]
