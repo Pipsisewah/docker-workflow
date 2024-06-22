@@ -1,0 +1,65 @@
+{
+  "stateMachine": {
+    "id": "dockerScript",
+    "initial": "setup",
+    "context": {},
+    "states": {
+      "setup": {
+        "entry": [
+          {
+            "type": "createVolume",
+            "Name": "scanlogs",
+            "persist": true
+          }
+        ],
+        "on": {
+          "NEXT": "setupScanNetwork"
+        }
+      },
+      "setupScanNetwork": {
+        "entry": [
+          {
+            "type": "createNetwork",
+            "networkName": "scannetwork",
+            "subnetMask": "172.22.0.0/16",
+            "persist": true
+          }
+        ],
+        "on": {
+          "NEXT": "mongodb"
+        }
+      },
+      "mongodb": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "reuse": true,
+            "containerName": "mongodb",
+            "dockerFolderName": "mongodb",
+            "ExposedPorts": {"27017/tcp": {}},
+            "PortBindings": { "27017/tcp": [{ "HostPort": "27017" }]},
+            "networkName": "scannetwork"
+          }
+        ],
+        "on": {
+          "NEXT": "runAmass"
+        }
+      },
+      "runAmass": {
+        "entry": [
+          {
+            "type": "runWorkflow",
+            "workflowName": "amassScan"
+          }
+        ],
+        "on": {
+          "NEXT": "complete"
+        }
+      },
+      "complete": {
+        "type": "final"
+      }
+    }
+  }
+
+}

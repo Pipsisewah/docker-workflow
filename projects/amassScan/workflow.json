@@ -1,0 +1,42 @@
+{
+  "stateMachine": {
+    "id": "dockerScript",
+    "initial": "amass",
+    "context": {},
+    "states": {
+      "amass": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "await": true,
+            "containerName": "amass",
+            "dockerFolderName": "amass",
+            "Binds": ["scanlogs:/data/scanlogs"]
+          }
+        ],
+        "on": {
+          "NEXT": "amassOutputParser"
+        }
+      },
+      "amassOutputParser": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "await": true,
+            "containerName": "amassparser",
+            "dockerFolderName": "amassParser",
+            "Binds": ["scanlogs:/data/scanlogs"],
+            "networkName": "scannetwork"
+          }
+        ],
+        "on": {
+          "NEXT": "complete"
+        }
+      },
+      "complete": {
+        "type": "final"
+      }
+    }
+  }
+
+}
