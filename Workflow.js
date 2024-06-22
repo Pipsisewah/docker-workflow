@@ -126,7 +126,7 @@ class Workflow {
     services = {};
 
     createAndRunWorkflow = (workflowDefinition, envVariables, workflowName, expressServer=null, parentWorkflow=null) => {
-        workflowDefinition.context = {envVariables, workflowName, parentWorkflow};
+        workflowDefinition.context = {...envVariables, workflowName, parentWorkflow};
         const workflowMachine = Machine(
             workflowDefinition,
             {

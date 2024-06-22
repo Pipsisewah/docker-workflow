@@ -3,8 +3,9 @@ const { MongoClient } = require('mongodb');
 const axios = require('axios');
 
 async function checkGoogleConnectivity() {
+    console.log(`apexDomain: ${JSON.stringify(process.env)}`)
     try {
-        const response = await axios.get('https://www.google.com');
+        const response = await axios.get('https://'+ process.env.apexDomain);
         if (response.status === 200) {
             console.log('Successfully connected to Google');
         } else {
