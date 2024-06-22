@@ -144,7 +144,7 @@ class Workflow {
                     console.log(`Running Cleanup on ${this.workflowName}`);
                     await this.cleanup();
                     await volumeActions.cleanup(this.volumes);
-                    await networkActions.cleanup(this.networks, this.containers);
+                    //await networkActions.cleanup(this.networks, this.containers);
                     console.log(`Operation Complete ${JSON.stringify(context)}`);
                     if(expressServer){
                         expressServer.close()
