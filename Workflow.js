@@ -41,7 +41,9 @@ class Workflow {
         action.Env = context;
         const container = await dockerActions.containerActions.startContainer(action, this.workflowName);
         this.trackContainer(action);
-        await this.verifyContainerServiceStarted(action);
+        if(action.awaitStart) {
+            await this.verifyContainerServiceStarted(action);
+        }
         console.log('Container Started');
         if(!action.await){
             this.activeWorkflow.send('NEXT');
@@ -93,16 +95,28 @@ class Workflow {
         this.activeWorkflow.send('NEXT');
     }
 
+    getFirstHostPort(bindings) {
+        const ports = bindings.PortBindings;
+        const firstPortKey = Object.keys(ports)[0]; // Get the first key
+        if (firstPortKey) {
+            const hostPort = ports[firstPortKey][0].HostPort;
+            return hostPort;
+        }
+        return null; // Return null if no ports are found
+    }
+
+
     verifyContainerServiceStarted = async (container) => {
-        if(container.ExposedPorts) {
-            const portKey = Object.keys(container.ExposedPorts)[0];
-            const port = portKey.split('/')[0];
-            if (port === "27017") {
+        if(container.ExposedPorts && container.PortBindings) {
+            const exposedPortKey = Object.keys(container.ExposedPorts)[0];
+            const hostPort = this.getFirstHostPort(container);
+            console.log(`hostPort ${hostPort}`);
+            const exposedPort = exposedPortKey.split('/')[0];
+            if (exposedPort === "27017") {
                 console.log('Checking if MongoDB is ready');
                 await containerValidation.checkMongoDBReady(container);
-            }
-            if (port === "8080") {
-                console.log('Would attempt to verify via HTTP');
+            } else {
+                await containerValidation.checkHttpReady(container, hostPort);
             }
         }
 
@@ -110,6 +124,12 @@ class Workflow {
 
     actions = {
         createContainer: assign(async (context, event, meta) => {
+            const { action } = meta;
+            if(action.skip){
+                console.log(`Skipping ${action.containerName}`);
+                this.activeWorkflow.send('NEXT');
+                return;
+            }
             await this.createContainer(context, event, meta);
         }),
         createVolume:  assign(async (context, event, meta) => {
@@ -119,6 +139,12 @@ class Workflow {
             await this.createNetwork(context, event, meta);
         }),
         runWorkflow:  assign(async (context, event, meta) => {
+            const { action } = meta;
+            if(action.skip){
+                console.log(`Skipping ${action.workflowName}`);
+                this.activeWorkflow.send('NEXT');
+                return;
+            }
             await this.runWorkflow(context, event, meta);
         }),
     };
