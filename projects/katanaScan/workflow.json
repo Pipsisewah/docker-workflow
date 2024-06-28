@@ -59,7 +59,6 @@
           {
             "type": "createContainer",
             "await": true,
-            "sustain": true,
             "containerName": "nuclei",
             "dockerFolderName": "nuclei",
             "networkName": "scannetwork",

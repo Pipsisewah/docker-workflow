@@ -20,4 +20,4 @@ RUN /app/update-templates.sh
 ENTRYPOINT ["nuclei"]
 
 # Default command
-CMD ["-t", "/app/nuclei-templates", "-target", "http://172.22.0.23:3000"]
+CMD ["-t", "cves/", "-target", "http://172.22.0.23:3000", "-j", "-o", "/data/scanlogs/nuclei.txt"]
