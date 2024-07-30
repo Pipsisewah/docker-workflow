@@ -52,7 +52,14 @@ const attachDebugLogsToContainer = async(containerBuildStream) => {
 }
 const buildImage = async (docker, containerConfig, workflowName) => {
     console.log(`Building Image ${containerConfig.containerName}`);
-    const contextPath = path.join(__dirname, '../../projects/', workflowName, '/containers/', containerConfig.dockerFolderName);
+    let contextPath = "";
+    console.log(`containerConfig.Env.source ${containerConfig.Env.source}`);
+    if(containerConfig.Env.source){
+        const rootDir = process.cwd();
+        contextPath = path.join(rootDir, containerConfig.Env.source, 'containers', containerConfig.dockerFolderName);
+    }else {
+        contextPath = path.join(__dirname, '../../projects/', workflowName, '/containers/', containerConfig.dockerFolderName);
+    }
     const tarStream = tar.pack(contextPath);
     const stream = await docker.buildImage(tarStream,
         {
@@ -100,12 +107,14 @@ const configureContainer = (containerConfig) => {
     }
     const env = transformEnvObjectToArray(containerConfig.Env);
     console.log(`ENV VARIABLES: ${env}`);
+    console.log(`container source: ${containerConfig.source}`);
     return {
         t: containerConfig.containerName,
         Image: containerConfig.containerName,
         name: containerConfig.containerName,
         Tty: true,
         Env: env,
+        source: containerConfig.source,
         HostConfig: {
             NetworkMode: containerConfig.networkName,
             PortBindings: containerConfig.PortBindings,
