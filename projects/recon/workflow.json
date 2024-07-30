@@ -50,7 +50,6 @@
           {
             "type": "createContainer",
             "reuse": true,
-            "skip": true,
             "containerName": "api",
             "dockerFolderName": "dbapi",
             "ExposedPorts": {"8081/tcp": {}},
@@ -59,26 +58,15 @@
           }
         ],
         "on": {
-          "NEXT": "runAmass"
+          "NEXT": "amass"
         }
       },
-      "runAmass": {
+      "amass": {
         "entry": [
           {
             "type": "runWorkflow",
             "workflowName": "amassScan",
-            "skip": true
-          }
-        ],
-        "on": {
-          "NEXT": "katanaScan"
-        }
-      },
-      "katanaScan": {
-        "entry": [
-          {
-            "type": "runWorkflow",
-            "workflowName": "katanaScan"
+            "source": "externalProjects"
           }
         ],
         "on": {

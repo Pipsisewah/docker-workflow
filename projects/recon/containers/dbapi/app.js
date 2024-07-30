@@ -25,9 +25,22 @@ const recordSchema = new mongoose.Schema({
     source: String,
     type: String,
     target: String
-});
+}, { collection: 'amass'});
 
 const Record = mongoose.model('amass', recordSchema);
+
+
+app.get('/fqdn', async (req, res) => {
+    const apexDomain = req.query.apexDomain;
+    console.log(`Received a request for apexDomain: ${apexDomain}`);
+    try {
+        const records = await Record.find({apexDomain});
+        res.status(201).send(records);
+    } catch (error) {
+        res.status(400).send(error.message);
+    }
+});
+
 
 // Routes
 app.get('/', (req, res) => {

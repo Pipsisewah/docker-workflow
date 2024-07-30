@@ -3,15 +3,18 @@ const {send, assign, Machine, interpret, sendParent} = require("xstate");
 const containerValidation = require("./actions/containerValidation");
 const util = require("util");
 const fs = require("fs");
+const path = require("path");
 const {containerActions, volumeActions, networkActions} = require("./actions/dockerActions");
 const readFileAsync = util.promisify(fs.readFile);
 
+
 class Workflow {
-    constructor({workflowName, parentWorkflow, envVariables}, expressServer) {
+    constructor({workflowName, parentWorkflow, envVariables, source}, expressServer) {
         this.workflowName = workflowName;
         this.parentWorkflow = parentWorkflow;
         this.envVariables = envVariables;
         this.expressServer = expressServer;
+        this.source = source ? (source + "/" + workflowName) : undefined;
     }
 
     activeWorkflow = null;
@@ -22,11 +25,18 @@ class Workflow {
     start = async () => {
         console.log(`Starting Workflow ${this.workflowName}`);
         const workflowDefinition = await this.readWorkflow(this.workflowName);
-        await this.createAndRunWorkflow(workflowDefinition, this.envVariables, this.workflowName, this.expressServer);
+        await this.createAndRunWorkflow(workflowDefinition, this.envVariables, this.workflowName, this.source, this.expressServer);
     }
 
     readWorkflow = async (workflowName) => {
-        const workflowPath = './projects/' + workflowName + '/workflow.json';
+
+        let workflowPath = "";
+        if(this.source){
+            const rootDir = process.cwd();
+            workflowPath = path.join(rootDir, (this.source + '/workflow.json'));
+        }else {
+            workflowPath = this.source || './projects/' + workflowName + '/workflow.json';
+        }
         try {
             const data = await readFileAsync(workflowPath);
             const jsonData = JSON.parse(data.toString());
@@ -71,10 +81,8 @@ class Workflow {
 
     runWorkflow = async (context, event, {action}) => {
         console.log(`Attempting to run Workflow ${action.workflowName}`);
-        const childWorkflow = new Workflow({workflowName: action.workflowName, parentWorkflow: this.activeWorkflow, envVariables: this.envVariables}, null);
+        const childWorkflow = new Workflow({workflowName: action.workflowName, parentWorkflow: this.activeWorkflow, envVariables: this.envVariables, source: action.source}, null);
         await childWorkflow.start();
-        // const workflowDefinition = await this.readWorkflow(action.workflowName);
-        // this.createAndRunWorkflow(workflowDefinition, context, action.workflowName, null);
     }
 
 
@@ -151,8 +159,8 @@ class Workflow {
 
     services = {};
 
-    createAndRunWorkflow = (workflowDefinition, envVariables, workflowName, expressServer=null, parentWorkflow=null) => {
-        workflowDefinition.context = {...envVariables, workflowName, parentWorkflow};
+    createAndRunWorkflow = (workflowDefinition, envVariables, workflowName, source, expressServer=null, parentWorkflow=null) => {
+        workflowDefinition.context = {...envVariables, workflowName, parentWorkflow, source};
         const workflowMachine = Machine(
             workflowDefinition,
             {
