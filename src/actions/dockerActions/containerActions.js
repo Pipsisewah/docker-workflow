@@ -1,7 +1,5 @@
 const tar = require("tar-fs");
 const path = require("path");
-const Docker = require("dockerode");
-const docker = new Docker();
 const util = require('util');
 
 const containerActions = {};
@@ -58,7 +56,7 @@ const buildImage = async (docker, containerConfig, workflowName) => {
         const rootDir = process.cwd();
         contextPath = path.join(rootDir, containerConfig.Env.source, 'containers', containerConfig.dockerFolderName);
     }else {
-        contextPath = path.join(__dirname, '../../projects/', workflowName, '/containers/', containerConfig.dockerFolderName);
+        contextPath = path.join(__dirname, '../../../projects/', workflowName, '/containers/', containerConfig.dockerFolderName);
     }
     const tarStream = tar.pack(contextPath);
     const stream = await docker.buildImage(tarStream,

@@ -47,9 +47,15 @@
 
 ## Flags
 ### Workflow
-- skip
+- skip (optional)
   - If this flag is set to `true`, the entire workflow will be skipped
   - This is useful if you are trying to debug
+- source (optional)
+  - Defines where to look for this workflow
+  - Useful if you have private workflows not included in the application
+  - Example project named "MyProject":
+    - "source": "externalProjects"
+    - This will look for a project in `<application_root>/externalProjects/MyProject`
 ### Container
 - await
   - Workflow will not continue until the host machine is able to contact the target container.  The system will look at which port is exposed and based on some rules, will attempt to connect.  Special code is given to connect via MongoDB, but will default to HTTP fetch if any other port is given.
