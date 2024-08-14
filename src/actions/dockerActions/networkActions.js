@@ -1,5 +1,4 @@
-const Docker = require("dockerode");
-const docker = new Docker();
+const dockerConfig = require('../../dockerConfig');
 const networks = [];
 const networkActions = {};
 
@@ -15,13 +14,13 @@ const getAllContainersUsingNetwork = async (networkName, containers) => {
 
 networkActions.getActiveNetworkInfo = async (networkName) => {
     try {
-        const networks = await docker.listNetworks();
+        const networks = await dockerConfig.getInstance().listNetworks();
         const network = networks.find(net => net.Name === networkName);
         if(!network){
             console.log(`Network ${networkName} does not exist!`);
             return;
         }
-        return docker.getNetwork(network.Id);
+        return dockerConfig.getInstance().getNetwork(network.Id);
     } catch (err) {
         console.error('Error listing networks:', err);
     }
@@ -40,7 +39,7 @@ networkActions.createNetwork = async (networkInfo) => {
                 }]
             };
         }
-        const network = await docker.createNetwork({
+        const network = await dockerConfig.getInstance().createNetwork({
             Name: networkInfo.networkName,
             Driver: 'bridge',
             IPAM: subnetConfig
@@ -62,7 +61,7 @@ networkActions.cleanup = async (networks, containers) => {
                         console.log(`Unable to delete network ${network.networkName}.  A reusable container requires this network to sustain ${JSON.stringify(containersUsingNetwork, null, 2)}`);
                         continue;
                     }
-                    const networkToDelete = docker.getNetwork(network.id);
+                    const networkToDelete = dockerConfig.getInstance().getNetwork(network.id);
                     networkToDelete.remove();
                     console.log(`Network ${network.networkName} deleted`);
                 }catch (err) {

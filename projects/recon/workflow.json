@@ -34,6 +34,7 @@
           {
             "type": "createContainer",
             "reuse": true,
+            "sustain": true,
             "containerName": "mongodb",
             "dockerFolderName": "mongodb",
             "ExposedPorts": {"27017/tcp": {}},

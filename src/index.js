@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('./api/index');
-const Docker = require("dockerode");
+const dockerConfig = require('./dockerConfig');
 const Workflow = require('./Workflow');
 const DEFAULT_WORKFLOW_NAME = 'recon';
 const DEFAULT_APEX_DOMAIN = 'slopesprogramming.com';
@@ -11,10 +11,10 @@ async function main() {
     const workflowName = process.env.PROJECT_NAME || DEFAULT_WORKFLOW_NAME;
     const apexDomain = process.env.APEX_DOMAIN || DEFAULT_APEX_DOMAIN;
     const dbURL = process.env.DB_URL || DEFAULT_DB_URL;
-    const dockerConfig = process.env.DOCKER_CONFIG || DEFAULT_DOCKER_CONFIG;
+    const dockerConfigSettings = process.env.DOCKER_CONFIG || DEFAULT_DOCKER_CONFIG;
     const expressServer = express.start(3000);``
     const debug = true;
-    const docker = new Docker();
+    dockerConfig.init(dockerConfigSettings);
     const mainWorkflow = new Workflow({workflowName, envVariables: {apexDomain, dbURL}, debug}, expressServer);
     await mainWorkflow.start();
 }
