@@ -59,14 +59,14 @@
           }
         ],
         "on": {
-          "NEXT": "amass"
+          "NEXT": "login"
         }
       },
-      "amass": {
+      "login": {
         "entry": [
           {
             "type": "runWorkflow",
-            "workflowName": "amassScan",
+            "workflowName": "login",
             "source": "externalProjects"
           }
         ],
