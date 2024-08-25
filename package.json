@@ -18,5 +18,8 @@
     "mongodb": "^6.5.0",
     "tar-fs": "^3.0.6",
     "xstate": "^4.38.3"
+  },
+  "jshintConfig": {
+    "esversion": 6
   }
 }
