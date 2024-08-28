@@ -47,6 +47,28 @@ class Workflow {
         }
     }
 
+    waitForContainerToExit(container) {
+        return new Promise((resolve, reject) => {
+            function checkStatus() {
+                container.inspect((err, data) => {
+                    if (err) {
+                        return reject(err);
+                    }
+                    const isRunning = data.State.Running;
+                    if (!isRunning) {
+                        console.log(`Container ${container.id} has exited with status code ${data.State.ExitCode}`);
+                        resolve(data.State.ExitCode); // Resolve the promise when the container exits
+                    } else {
+                        console.log(`Container ${container.id} is still running`);
+                        // Check again after a short delay
+                        setTimeout(checkStatus, 1000);
+                    }
+                });
+            }
+            checkStatus(); // Start the status check
+        });
+    }
+
     createContainer = async (context, event, { action }) => {
         action.Env = context;
         const container = await dockerActions.containerActions.startContainer(action, this.workflowName);
@@ -55,7 +77,12 @@ class Workflow {
             await this.verifyContainerServiceStarted(action);
         }
         console.log('Container Started');
-        if(!action.await){
+        if(action.awaitFinish) {
+            console.log(`${container.containerName} Complete`);
+            const exitCode = await this.waitForContainerToExit(container);
+            // I can evaluate the exit code and if not 0, can possibly throw an error to stop the execution
+            this.activeWorkflow.send('NEXT');
+        }else if(!action.await){
             this.activeWorkflow.send('NEXT');
         }else {
             container.wait((err, data) => {

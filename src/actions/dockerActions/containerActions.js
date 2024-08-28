@@ -76,7 +76,13 @@ const buildImage = async (containerConfig, workflowName) => {
         }
         function onProgress(event) {
             //if(process.env.debug) {
-                console.log(`${containerConfig.containerName} progress: ${JSON.stringify(event)}`);
+            if (event.progressDetail && event.progressDetail.total) {
+                const percentage = (event.progressDetail.current / event.progressDetail.total) * 100;
+                //console.log(`Layer ${event.id}: ${percentage.toFixed(2)}% complete`);
+            } else if (event.status) {
+                console.log(`${containerConfig.containerName} Layer Status: ${event.status}`);
+            }
+                //console.log(`${containerConfig.containerName} building: ${JSON.stringify(event.stream)}`);
             //}
         }
         dockerConfig.getInstance().modem.followProgress(stream, onFinished, onProgress);
@@ -125,7 +131,8 @@ const configureContainer = (containerConfig) => {
         },
         NetworkingConfig
     }
-}
+};
+
 const createAndStartContainer = async (containerConfig, workflowName) => {
     await buildImage(containerConfig, workflowName);
     const container = await dockerConfig.getInstance().createContainer(configureContainer(containerConfig));
