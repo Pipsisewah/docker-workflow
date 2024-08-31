@@ -1,12 +1,11 @@
-const Docker = require("dockerode");
-const docker = new Docker();
+const dockerConfig = require('../../dockerConfig');
 const volumeActions = {};
 
 
 
 
 volumeActions.createVolume = async (action) => {
-    const volume = await docker.createVolume({
+    const volume = await dockerConfig.getInstance().createVolume({
         Name: action.Name
     });
     return {

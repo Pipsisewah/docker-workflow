@@ -1,0 +1,70 @@
+{
+  "stateMachine": {
+    "id": "dockerScript",
+    "initial": "setup",
+    "context": {},
+    "states": {
+      "setupAttackNetwork": {
+        "entry": [
+          {
+            "type": "createNetwork",
+            "networkName": "attacknetwork",
+            "subnetMask": "172.23.0.0/16",
+            "persist": true
+          }
+        ],
+        "on": {
+          "NEXT": "mongodb"
+        }
+      },
+      "mongodb": {
+        "entry": [
+          {
+            "type": "createContainer",
+            "reuse": true,
+            "sustain": true,
+            "containerName": "mongodb",
+            "dockerFolderName": "mongodb",
+            "ExposedPorts": {"27017/tcp": {}},
+            "PortBindings": { "27017/tcp": [{ "HostPort": "27017" }]},
+            "networkName": "scannetwork"
+          }
+        ],
+        "on": {
+          "NEXT": "workflow"
+        }
+      },
+      "workflow": {
+        "entry": [
+          {
+            "type": "runWorkflow",
+            "workflowName": "api",
+            "dockerFolderName": "dbapi",
+            "ExposedPorts": {"8081/tcp": {}},
+            "PortBindings": { "8081/tcp": [{ "HostPort": "8081" }]},
+            "networkName": "scannetwork"
+          }
+        ],
+        "on": {
+          "NEXT": "login"
+        }
+      },
+      "login": {
+        "entry": [
+          {
+            "type": "runWorkflow",
+            "workflowName": "login",
+            "source": "externalProjects"
+          }
+        ],
+        "on": {
+          "NEXT": "complete"
+        }
+      },
+      "complete": {
+        "type": "final"
+      }
+    }
+  }
+
+}
