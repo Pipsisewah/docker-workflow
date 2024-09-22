@@ -9,12 +9,13 @@ const readFileAsync = util.promisify(fs.readFile);
 
 
 class Workflow {
-    constructor({workflowName, parentWorkflow, envVariables, source}, expressServer) {
+    constructor({workflowName, parentWorkflow, envVariables, source, defaultNetwork}, expressServer) {
         this.workflowName = workflowName;
         this.parentWorkflow = parentWorkflow;
         this.envVariables = envVariables;
         this.expressServer = expressServer;
         this.source = source ? (source + "/" + workflowName) : undefined;
+        this.defaultNetwork = defaultNetwork;
     }
 
     activeWorkflow = null;
@@ -70,7 +71,8 @@ class Workflow {
     }
 
     createContainer = async (context, event, { action }) => {
-        action.Env = context;
+        action.Env = {...context, ...action.Env };
+        action.defaultNetwork = this.defaultNetwork;
         const container = await dockerActions.containerActions.startContainer(action, this.workflowName);
         this.trackContainer(action);
         if(action.awaitStart) {
@@ -108,7 +110,8 @@ class Workflow {
 
     runWorkflow = async (context, event, {action}) => {
         console.log(`Attempting to run Workflow ${action.workflowName}`);
-        const childWorkflow = new Workflow({workflowName: action.workflowName, parentWorkflow: this.activeWorkflow, envVariables: this.envVariables, source: action.source}, null);
+        console.log('Parent workflow starting child.');
+        const childWorkflow = new Workflow({workflowName: action.workflowName, parentWorkflow: this.activeWorkflow, envVariables: this.envVariables, source: action.source, defaultNetwork: this.defaultNetwork}, null);
         await childWorkflow.start();
     }
 
@@ -120,6 +123,9 @@ class Workflow {
             this.trackNetwork(networkInfo)
         }else{
             this.trackNetwork(networkInfo);
+        }
+        if(!this.defaultNetwork){
+            this.defaultNetwork = action.networkName;
         }
         this.activeWorkflow.send('NEXT');
     }
