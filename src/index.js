@@ -14,7 +14,7 @@ async function main() {
     const dbURL = process.env.DB_URL || DEFAULT_DB_URL;
     const dockerConfigSettings = process.env.DOCKER_CONFIG || DEFAULT_DOCKER_CONFIG;
     const defaultProjectLocation = process.env.DEFAULT_PROJECT_LOCATION || DEFAULT_PROJECT_LOCATION;
-    const expressServer = express.start(3000);``
+    const expressServer = express.start(3000);
     const debug = true;
     dockerConfig.init(dockerConfigSettings);
     const mainWorkflow = new Workflow({workflowName, envVariables: {apexDomain, dbURL, defaultProjectLocation}, debug, source: defaultProjectLocation}, expressServer);

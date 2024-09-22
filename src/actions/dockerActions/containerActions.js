@@ -66,9 +66,7 @@ const buildImage = async (containerConfig, workflowName) => {
             pull: true,
         }
     );
-     // // if(process.env.debug) {
-     //    await attachDebugLogsToContainer(stream);
-     // // }
+
     await new Promise((resolve, reject) => {
         function onFinished(err, output) {
             console.log(`${containerConfig.containerName} build has finished`);
@@ -78,12 +76,10 @@ const buildImage = async (containerConfig, workflowName) => {
             //if(process.env.debug) {
             if (event.progressDetail && event.progressDetail.total) {
                 const percentage = (event.progressDetail.current / event.progressDetail.total) * 100;
-                //console.log(`Layer ${event.id}: ${percentage.toFixed(2)}% complete`);
+                console.log(`Container Progress: ${JSON.stringify(event)}`);
             } else if (event.status) {
                 console.log(`${containerConfig.containerName} Layer Status: ${event.status}`);
             }
-                //console.log(`${containerConfig.containerName} building: ${JSON.stringify(event.stream)}`);
-            //}
         }
         dockerConfig.getInstance().modem.followProgress(stream, onFinished, onProgress);
     });
@@ -111,8 +107,6 @@ const configureContainer = (containerConfig) => {
         }
     }
     const env = transformEnvObjectToArray(containerConfig.Env);
-    console.log(`ENV VARIABLES: ${env}`);
-    console.log(`container source: ${containerConfig.source}`);
     return {
         t: containerConfig.containerName,
         Image: containerConfig.containerName,
@@ -122,7 +116,7 @@ const configureContainer = (containerConfig) => {
         Env: env,
         source: containerConfig.source,
         HostConfig: {
-            NetworkMode: containerConfig.networkName,
+            NetworkMode: containerConfig.networkName || containerConfig.defaultNetwork,
             PortBindings: containerConfig.PortBindings,
             ExposedPorts: containerConfig.ExposedPorts,
             Binds: containerConfig.Binds,
